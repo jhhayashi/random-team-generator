@@ -4,7 +4,7 @@
   "description": "App to randomly generate teams",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "ts-node server"
   },
   "repository": {
     "type": "git",
@@ -18,5 +18,11 @@
   "homepage": "https://github.com/jhhayashi/random-team-generator#readme",
   "dependencies": {
     "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.11",
+    "@types/node": "^14.14.32",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.3"
   }
 }
