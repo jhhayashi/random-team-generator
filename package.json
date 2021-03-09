@@ -1,0 +1,22 @@
+{
+  "name": "random-team-generator",
+  "version": "0.0.0",
+  "description": "App to randomly generate teams",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jhhayashi/random-team-generator.git"
+  },
+  "author": "Jordan Hayashi <jordan@jordanhayashi.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jhhayashi/random-team-generator/issues"
+  },
+  "homepage": "https://github.com/jhhayashi/random-team-generator#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
