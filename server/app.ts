@@ -1,14 +1,18 @@
 import Express, {Request, Response} from 'express'
-import {AddressInfo} from 'net'
 import * as _ from 'lodash'
 
-import {User, APIv1Member} from './types'
+import {User, APIv1Member} from '../types'
 
-const PORT = process.env["port"] || 8080
+const {NODE_ENV} = process.env
 
 const app = Express()
 
-const team: User[] = []
+let team: User[] = []
+
+// utility for setting fake data in tests
+if (NODE_ENV == 'test') {
+  Object.assign(app, {useFakeData(fakeData: any[]) { team = fakeData }})
+}
 
 // since there's no good way to type an express response, we have to add some
 // small overhead that types the response for us
@@ -24,7 +28,4 @@ app.get('/api/v1/member', (_req: Request, res: Response) => {
   sendAPIV1Member(res, randomMember)
 })
 
-const server = app.listen(PORT, () => {
-  const { port } = server?.address() as AddressInfo
-  console.log(`Server listening at http://localhost:${port}`)
-})
+export default app
