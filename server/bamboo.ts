@@ -36,9 +36,12 @@ interface BambooAPIResponse {
 
 // the BambooEmployee type comes from the API call, but the Employee type
 // is the normalized type that we use in the app
-interface Employee extends Omit<BambooEmployee, 'id'> {
+interface Employee extends Omit<BambooEmployee, 'id'|'jobTitle'|'department'|'location'> {
   name: string
   id: ID
+  jobTitle?: string
+  department?: string
+  location?: string
 }
 
 interface Cache {
@@ -56,19 +59,26 @@ interface Cache {
   }
 }
 
-const cache: Cache = {}
+export const cache: Cache = {}
 
-const getName = (employee: BambooEmployee): string  => employee.displayName + (employee.preferredName ? ` (${employee.preferredName})` : '')
-
-// takes an aggregation returned by a _.groupBy call and turns the values into a list of IDs rather than objects
-function byIds<T extends {[name: string]: BambooEmployee[]}>(
-  aggregation: T,
-): {[name in keyof T]: ID[]} {
-  return _.mapValues(aggregation, arr => arr.map(val => val.id.toString()))
+function getName (employee: Employee | BambooEmployee): string {
+  if ('name' in employee) return employee.name
+  return employee.displayName + (employee.preferredName ? ` (${employee.preferredName})` : '')
 }
 
-function byFirstId<T extends {[name: string]: BambooEmployee[]}>(aggregation: T) {
-  const byIdArr = byIds(aggregation)
+// takes an aggregation returned by a _.groupBy call and turns the values into a list of IDs rather than objects
+function byIds(
+  employees: Employee[],
+  groupByFunction: (e: Employee) => string | undefined | null
+): {[name: string]: ID[]} {
+  // toss any users that don't have the particular parameter defined
+  const candidates = employees.filter(e => groupByFunction(e) != null)
+  const aggregation = _.groupBy(candidates, groupByFunction)
+  return _.mapValues(aggregation, eArr => eArr.map(e => e.id.toString()))
+}
+
+function byFirstId(employees: Employee[], groupByFunction: (e: Employee) => string | undefined) {
+  const byIdArr = byIds(employees, groupByFunction)
   return _.mapValues(byIdArr, arr => arr[0]) 
 }
 
@@ -89,20 +99,27 @@ export function getBambooData() {
       cache.date = Date.now()
 
       // any normalization
-      const employees: Employee[] = response.employees.map(e => ({...e, id: e.id.toString(), name: getName(e)}))
+      const employees: Employee[] = response.employees.map(e => ({
+        ...e,
+        id: e.id.toString(),
+        name: getName(e),
+        jobTitle: _.isArray(e.jobTitle) ? _.last(e.jobTitle) : e.jobTitle,
+        department: _.isArray(e.department) ? _.last(e.department) : e.department,
+        location: _.isArray(e.location) ? _.last(e.location) : e.location,
+      }))
 
       // maps ids to the employee object
       const ids = withOnlyTruthyValues(_.mapValues(_.groupBy(employees, e => e.id), arr => arr[0]))
       if (_.size(employees) !== _.size(ids)) console.warn('WARNING: duplicate BambooHR IDs found')
 
       // the data.by<Representation> keys map some key to a list of IDs
-      // TODO: make this work in the case where more than one person has the same displayName
-      const byName: {[name: string]: ID} = withOnlyTruthyValues(byFirstId(_.groupBy(employees, e => e.displayName)))
-      if (_.size(employees) !== _.size(byName)) console.warn('WARNING: duplicate BambooHR displayNames found')
-      const byTeam: {[team: string]: ID[]} = byIds(_.groupBy(employees, e => e.department))
-      const byDirectReportsIncludingCEO: {[name: string]: ID[]} = byIds(_.groupBy(employees, e => e.supervisor))
-      // CEO's supervisor can be falsy, so we should handle that
-      const byDirectReports = _.omitBy(byDirectReportsIncludingCEO, (_, key) => !key)
+      // TODO: make this work in the case where more than one person has the same name
+      const byName: {[name: string]: ID} = withOnlyTruthyValues(byFirstId(employees, e => e.name))
+      if (_.size(employees) !== _.size(byName)) console.warn('WARNING: duplicate BambooHR names found')
+      const byTeam: {[team: string]: ID[]} = byIds(employees, e => e.department)
+      const byDirectReportsIncludingCEO: {[name: string]: ID[]} = byIds(employees, e => e.supervisor)
+      // CEO's supervisor can be '', so we should handle that (null and undefined cases were handled by byIds())
+      const byDirectReports = _.omitBy(byDirectReportsIncludingCEO, (_, key) => key == '')
       const managerCountDelta = _.size(byDirectReportsIncludingCEO) - _.size(byDirectReports)
       if (managerCountDelta == 1) {
         console.debug("DEBUG: there was a manager with a falsy name. the app assumes that it was caused by the CEO reporting to ''")
@@ -110,7 +127,7 @@ export function getBambooData() {
       if (managerCountDelta > 1) console.warn('WARNING: multiple there are multiple managers with falsy names')
 
       function getEmployeeAndTransitiveReports(id: string): string[] {
-        const name = ids[id]?.displayName
+        const name = ids[id]?.name
         if (!name || !byDirectReports[name]) return [id]
         return [id, ...(_.flatMap(byDirectReports[name], getEmployeeAndTransitiveReports))]
       }
