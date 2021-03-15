@@ -31,7 +31,7 @@ describe('Test getRandomTeamsFromMembers()', () => {
     expect(teams).toHaveLength(1)
     const team = teams[0]
     expect(team).toHaveLength(users.length)
-    const ids = [...new Set(team.map(user => user.id))]
+    const ids = [...new Set((team || []).map(user => user.id))]
     expect(ids).toHaveLength(users.length)
   })
 

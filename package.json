@@ -6,7 +6,7 @@
   "scripts": {
     "start": "ts-node server",
     "dev": "nodemon server/index.ts",
-    "test": "jest",
+    "test": "tsc --noEmit && jest",
     "test:watch": "jest --watch"
   },
   "repository": {

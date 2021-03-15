@@ -98,7 +98,9 @@ describe('aggregations', () => {
           ["2", "2"],
           ["3", "3 (3)"],
         ].forEach(([id, expectedName]) => {
+          // @ts-ignore
           expect(cache.data?.ids[id].name).toBe(expectedName)
+          // @ts-ignore
           expect(cache.data?.byName[expectedName]).toBe(id)
         })
       })
