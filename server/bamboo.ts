@@ -6,6 +6,7 @@ const {
   BAMBOOHR_KEY,
   BAMBOOHR_SUBDOMAIN,
   CACHE_EXPIRATION_MS: CACHE_EXPIRATION_MS_STR = 1000 * 60 * 60 * 24, // 1 day
+  NODE_ENV,
 } = process.env
 
 const CACHE_EXPIRATION_MS = +CACHE_EXPIRATION_MS_STR
@@ -13,7 +14,7 @@ const ALLOWED_KEYS = ['id', 'displayName', 'preferredName', 'jobTitle', 'departm
 
 const ENABLED = BAMBOOHR_KEY && BAMBOOHR_SUBDOMAIN
 
-if (!ENABLED) console.log('No BAMBOOHR_KEY and BAMBOOHR_SUBDOMAIN. BambooHR integration turned off')
+if (!ENABLED && NODE_ENV !== 'test') console.log('No BAMBOOHR_KEY and BAMBOOHR_SUBDOMAIN. BambooHR integration turned off')
 
 type ID = string
 
@@ -61,6 +62,11 @@ interface Cache {
 
 export const cache: Cache = {}
 
+export function clearCache() {
+  delete cache.date
+  delete cache.data
+}
+
 function getName (employee: Employee | BambooEmployee): string {
   if ('name' in employee) return employee.name
   return employee.displayName + (employee.preferredName ? ` (${employee.preferredName})` : '')
@@ -72,7 +78,7 @@ function byIds(
   groupByFunction: (e: Employee) => string | undefined | null
 ): {[name: string]: ID[]} {
   // toss any users that don't have the particular parameter defined
-  const candidates = employees.filter(e => groupByFunction(e) != null)
+  const candidates = employees.filter(e => groupByFunction(e))
   const aggregation = _.groupBy(candidates, groupByFunction)
   return _.mapValues(aggregation, eArr => eArr.map(e => e.id.toString()))
 }
@@ -117,14 +123,7 @@ export function getBambooData() {
       const byName: {[name: string]: ID} = withOnlyTruthyValues(byFirstId(employees, e => e.name))
       if (_.size(employees) !== _.size(byName)) console.warn('WARNING: duplicate BambooHR names found')
       const byTeam: {[team: string]: ID[]} = byIds(employees, e => e.department)
-      const byDirectReportsIncludingCEO: {[name: string]: ID[]} = byIds(employees, e => e.supervisor)
-      // CEO's supervisor can be '', so we should handle that (null and undefined cases were handled by byIds())
-      const byDirectReports = _.omitBy(byDirectReportsIncludingCEO, (_, key) => key == '')
-      const managerCountDelta = _.size(byDirectReportsIncludingCEO) - _.size(byDirectReports)
-      if (managerCountDelta == 1) {
-        console.debug("DEBUG: there was a manager with a falsy name. the app assumes that it was caused by the CEO reporting to ''")
-      }
-      if (managerCountDelta > 1) console.warn('WARNING: multiple there are multiple managers with falsy names')
+      const byDirectReports: {[name: string]: ID[]} = byIds(employees, e => e.supervisor)
 
       function getEmployeeAndTransitiveReports(id: string): string[] {
         const name = ids[id]?.name
@@ -152,7 +151,9 @@ export function getBambooData() {
         managerIds,
       }
       cache.data = data
-      console.log(`[${new Date().toLocaleString('en-US')}] BambooHR cache warmed with ${data.employees.length} employees`)
+      if (NODE_ENV != 'test') {
+        console.log(`[${new Date().toLocaleString('en-US')}] BambooHR cache warmed with ${data.employees.length} employees`)
+      }
       return data
     })
 
