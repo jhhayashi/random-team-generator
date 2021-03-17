@@ -93,7 +93,7 @@ describe('Test getRandomTeamsFromMembers()', () => {
 })
 
 describe('Test the /api/v1/member endpoint', () => {
-  it('Returns a random team member', () => {
+  test.skip('Returns a random team member', () => {
     // @ts-ignore
     app.useFakeData(users)
     return request(app)

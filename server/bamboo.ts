@@ -10,7 +10,7 @@ const {
 } = process.env
 
 const CACHE_EXPIRATION_MS = +CACHE_EXPIRATION_MS_STR
-const ALLOWED_KEYS = ['id', 'displayName', 'preferredName', 'jobTitle', 'department', 'location', 'photoUrl', 'name']
+const ALLOWED_KEYS = ['id', 'displayName', 'preferredName', 'jobTitle', 'department', 'location', 'photoUrl', 'name'] as const
 
 const ENABLED = BAMBOOHR_KEY && BAMBOOHR_SUBDOMAIN
 
@@ -45,11 +45,14 @@ interface Employee extends Omit<BambooEmployee, 'id'|'jobTitle'|'department'|'lo
   location?: string
 }
 
+// we only ALLOWED_KEYS so that we don't expose any sensitive information
+type CachedEmployee = Pick<Employee, typeof ALLOWED_KEYS[number]>
+
 interface Cache {
   date?: number // Date.now()
   data?: {
-    ids: {[id: string]: Partial<Employee>}
-    employees: Partial<Employee>[]
+    ids: {[id: string]: CachedEmployee}
+    employees: CachedEmployee[]
     byName: {[name: string]: ID}
     byTeam: {[team: string]: ID[]}
     byDirectReports: {[name: string]: ID[]}
@@ -159,3 +162,6 @@ export function getBambooData() {
 
   return cache.data ? Promise.resolve(cache.data) : dataPromise
 }
+
+// warm the cache
+if (ENABLED) getBambooData()

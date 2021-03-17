@@ -3,16 +3,9 @@ import * as _ from 'lodash'
 
 import {User, APIv1Member} from '../types'
 
-const {NODE_ENV} = process.env
+import {getBambooData} from './bamboo'
 
 const app = Express()
-
-let team: User[] = []
-
-// utility for setting fake data in tests
-if (NODE_ENV == 'test') {
-  Object.assign(app, {useFakeData(fakeData: any[]) { team = fakeData }})
-}
 
 function isPositiveInt(maybeInt: any): boolean {
   return _.isInteger(maybeInt) && maybeInt > 0
@@ -54,8 +47,12 @@ function createResponseFunction<T>() {
 
 const sendAPIV1Member = createResponseFunction<APIv1Member | undefined>()
 app.get('/api/v1/member', (_req: Request, res: Response) => {
-  const randomMember = getRandomTeamsFromMembers(team, {teamCount: 1, maxTeamSize: 1})[0]?.[0]
-  sendAPIV1Member(res, randomMember)
+  getBambooData()
+    .then((data)=> {
+      if (!data?.employees) throw new Error('there are no employees')
+      const randomMember = getRandomTeamsFromMembers(data?.employees, {teamCount: 1, maxTeamSize: 1})[0]?.[0]
+      sendAPIV1Member(res, randomMember)
+    })
 })
 
 export default app
