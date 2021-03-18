@@ -1,9 +1,14 @@
+jest.mock('node-fetch')
+
+import fetch from 'node-fetch'
 import request from 'supertest'
 import * as _ from 'lodash'
 
 import {User} from '../types'
 
 import app, {getRandomTeamsFromMembers} from './app'
+
+const {Response} = jest.requireActual('node-fetch')
 
 const createMockUsers = (n = 3) => Array.from({length: n}, (_, i) => ({id: i.toString(), name: i.toString()}))
 // [{id: "1", name: "1"}, {id: "2", name: "2"}, {id: "3", name: "3"}]
@@ -93,9 +98,13 @@ describe('Test getRandomTeamsFromMembers()', () => {
 })
 
 describe('Test the /api/v1/member endpoint', () => {
-  test.skip('Returns a random team member', () => {
+  test('Returns a random team member', () => {
     // @ts-ignore
-    app.useFakeData(users)
+    fetch.mockReturnValue(Promise.resolve(new Response(JSON.stringify({
+      fields: [],
+      employees: users,
+    }))))
+
     return request(app)
       .get('/api/v1/member')
       .expect(200)
