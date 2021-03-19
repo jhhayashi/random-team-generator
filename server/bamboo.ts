@@ -95,6 +95,55 @@ function withOnlyTruthyValues<T extends {}>(obj: T): Record<string, NonNullable<
   return _.omitBy(obj, val => !val)
 }
 
+export function getNormalizedBambooCache(data: BambooAPIResponse): Required<Cache>['data'] {
+    // any normalization
+    const employees: Employee[] = data.employees.map(e => ({
+      ...e,
+      id: e.id.toString(),
+      name: getName(e),
+      jobTitle: _.isArray(e.jobTitle) ? _.last(e.jobTitle) : e.jobTitle,
+      department: _.isArray(e.department) ? _.last(e.department) : e.department,
+      location: _.isArray(e.location) ? _.last(e.location) : e.location,
+    }))
+
+    // maps ids to the employee object
+    const ids = withOnlyTruthyValues(_.mapValues(_.groupBy(employees, e => e.id), arr => arr[0]))
+    if (_.size(employees) !== _.size(ids)) console.warn('WARNING: duplicate BambooHR IDs found')
+
+    // the data.by<Representation> keys map some key to a list of IDs
+    // TODO: make this work in the case where more than one person has the same name
+    const byName: {[name: string]: ID} = withOnlyTruthyValues(byFirstId(employees, e => e.name))
+    if (_.size(employees) !== _.size(byName)) console.warn('WARNING: duplicate BambooHR names found')
+    const byTeam: {[team: string]: ID[]} = byIds(employees, e => e.department)
+    const byDirectReports: {[name: string]: ID[]} = byIds(employees, e => e.supervisor)
+
+    function getEmployeeAndTransitiveReports(id: string): string[] {
+      const name = ids[id]?.name
+      if (!name || !byDirectReports[name]) return [id]
+      return [id, ...(_.flatMap(byDirectReports[name], getEmployeeAndTransitiveReports))]
+    }
+    const byTransitiveReports: {[name: string]: string[]}  = _.mapValues(byDirectReports, ids => _.flatMap(ids, getEmployeeAndTransitiveReports))
+
+    // the data.<Object>s keys list the object keys
+    const teamNames = Object.keys(byTeam)
+    const managerNames = Object.keys(byDirectReports)
+    const managerIds = managerNames.map(name => byName[name]).filter(_.isString)
+
+    return {
+      // ensure we only keep non-sensitive info
+      ids: _.mapValues(ids, e => _.pick(e, ALLOWED_KEYS)),
+      employees: employees.map(e => _.pick(e, ALLOWED_KEYS)),
+
+      byName,
+      byTeam,
+      byDirectReports,
+      byTransitiveReports,
+      teamNames,
+      managerNames,
+      managerIds,
+    }
+}
+
 export function getBambooData() {
   if (cache.date && cache.date + CACHE_EXPIRATION_MS > Date.now()) return Promise.resolve(cache.data)
 
@@ -106,53 +155,8 @@ export function getBambooData() {
     .then(res => res.json())
     .then((response: BambooAPIResponse) => {
       cache.date = Date.now()
+      const data = getNormalizedBambooCache(response)
 
-      // any normalization
-      const employees: Employee[] = response.employees.map(e => ({
-        ...e,
-        id: e.id.toString(),
-        name: getName(e),
-        jobTitle: _.isArray(e.jobTitle) ? _.last(e.jobTitle) : e.jobTitle,
-        department: _.isArray(e.department) ? _.last(e.department) : e.department,
-        location: _.isArray(e.location) ? _.last(e.location) : e.location,
-      }))
-
-      // maps ids to the employee object
-      const ids = withOnlyTruthyValues(_.mapValues(_.groupBy(employees, e => e.id), arr => arr[0]))
-      if (_.size(employees) !== _.size(ids)) console.warn('WARNING: duplicate BambooHR IDs found')
-
-      // the data.by<Representation> keys map some key to a list of IDs
-      // TODO: make this work in the case where more than one person has the same name
-      const byName: {[name: string]: ID} = withOnlyTruthyValues(byFirstId(employees, e => e.name))
-      if (_.size(employees) !== _.size(byName)) console.warn('WARNING: duplicate BambooHR names found')
-      const byTeam: {[team: string]: ID[]} = byIds(employees, e => e.department)
-      const byDirectReports: {[name: string]: ID[]} = byIds(employees, e => e.supervisor)
-
-      function getEmployeeAndTransitiveReports(id: string): string[] {
-        const name = ids[id]?.name
-        if (!name || !byDirectReports[name]) return [id]
-        return [id, ...(_.flatMap(byDirectReports[name], getEmployeeAndTransitiveReports))]
-      }
-      const byTransitiveReports: {[name: string]: string[]}  = _.mapValues(byDirectReports, ids => _.flatMap(ids, getEmployeeAndTransitiveReports))
-
-      // the data.<Object>s keys list the object keys
-      const teamNames = Object.keys(byTeam)
-      const managerNames = Object.keys(byDirectReports)
-      const managerIds = managerNames.map(name => byName[name]).filter(_.isString)
-
-      const data = {
-        // ensure we only keep non-sensitive info
-        ids: _.mapValues(ids, e => _.pick(e, ALLOWED_KEYS)),
-        employees: employees.map(e => _.pick(e, ALLOWED_KEYS)),
-
-        byName,
-        byTeam,
-        byDirectReports,
-        byTransitiveReports,
-        teamNames,
-        managerNames,
-        managerIds,
-      }
       cache.data = data
       if (NODE_ENV != 'test') {
         console.log(`[${new Date().toLocaleString('en-US')}] BambooHR cache warmed with ${data.employees.length} employees`)
