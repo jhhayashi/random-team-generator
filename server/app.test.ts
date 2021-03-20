@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import request from 'supertest'
 import * as _ from 'lodash'
 
-import {User} from '../types'
+import {User, APIv1Groups} from '../types'
 
 import app, {getRandomTeamsFromMembers} from './app'
 
@@ -96,23 +96,78 @@ describe('Test getRandomTeamsFromMembers()', () => {
     expect(() => getRandomTeamsFromMembers(users, {maxTeamSize: 0, teamCount: 1})).toThrow()
   })
 })
-
-describe('Test the /api/v1/member endpoint', () => {
-  test('Returns a random team member', () => {
+describe('Endpoint Tests', () => {
+  beforeEach(() => {
     // @ts-ignore
     fetch.mockReturnValue(Promise.resolve(new Response(JSON.stringify({
       fields: [],
       employees: users,
     }))))
+  })
 
-    return request(app)
-      .get('/api/v1/member')
-      .expect(200)
-      .then(res => {
-        const {body} = res
-        if (!body) throw new Error("must have a body")
-        expect(body).toHaveProperty("id", expect.any(String))
-        expect(body).toHaveProperty("name", expect.any(String))
-      })
+  describe('Test the /api/v1/member endpoint', () => {
+    test('Returns a random team member', () => {
+      return request(app)
+        .get('/api/v1/member')
+        .expect(200)
+        .then(res => {
+          const {body} = res
+          if (!body) throw new Error("must have a body")
+          expect(body).toHaveProperty("id", expect.any(String))
+          expect(body).toHaveProperty("name", expect.any(String))
+        })
+    })
+  })
+
+  describe('Test the /api/v1/groups endpoint', () => {
+    test('Returns 400 when no query', () => request(app).get('/api/v1/groups').expect(400))
+    test('Returns 400 on bad query', () => request(app).get('/api/v1/groups?groupCount=foo').expect(400))
+
+    test('Returns a group with all users when groupCount=1', () => {
+      return request(app)
+        .get('/api/v1/groups?groupCount=1')
+        .expect(200)
+        .then(res => {
+          const {body} = res
+          if (!body) throw new Error("must have a body")
+          const {groups} = body
+          expect(groups).toHaveLength(1)
+          const group = groups[0]
+          expect(group).toHaveLength(users.length)
+          const member = group[0]
+          expect(member).toHaveProperty("id", expect.any(String))
+          expect(member).toHaveProperty("name", expect.any(String))
+        })
+    })
+
+    test('Returns all users in single-member groups when maxGroupSize=1', () => {
+      return request(app)
+        .get('/api/v1/groups?maxGroupSize=1')
+        .expect(200)
+        .then(res => {
+          const {body} = res
+          if (!body) throw new Error("must have a body")
+          const groups: Array<typeof users> = body.groups
+          expect(groups).toHaveLength(users.length)
+          groups.forEach(group => {
+            expect(group).toHaveLength(1)
+            const member = group[0]
+            expect(member).toHaveProperty("id", expect.any(String))
+            expect(member).toHaveProperty("name", expect.any(String))
+          })
+        })
+    })
+
+    test('Returns as expected when groupCount and maxGroupSize as both passed', () => {
+      return request(app)
+        .get('/api/v1/groups?groupCount=2&maxGroupSize=2')
+        .expect(200)
+        .then(res => {
+          const body: APIv1Groups = res.body
+          const {groups} = body
+          expect(groups[0]).toHaveLength(2)
+          expect(groups[1]).toHaveLength(Math.min(users.length - 2, 2))
+        })
+    })
   })
 })

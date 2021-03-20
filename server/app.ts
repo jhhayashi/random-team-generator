@@ -1,7 +1,8 @@
-import Express, {Request, Response} from 'express'
+import Express, {NextFunction, Request, Response} from 'express'
+import {check, matchedData, validationResult} from 'express-validator'
 import * as _ from 'lodash'
 
-import {User, APIv1Member} from '../types'
+import {User, APIv1Member, APIv1Groups} from '../types'
 
 import {getBambooData} from './bamboo'
 
@@ -13,6 +14,12 @@ function isPositiveInt(maybeInt: any): boolean {
 
 // Record / Object with at least one key defined
 type AtLeastOneKey<O, T = {[K in keyof O]: Pick<O, K>}> = Partial<O> & T[keyof T]
+
+function respondWith400IfErrors(req: Request, res: Response, next: NextFunction) {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) return res.status(400).json({errors: errors.array()})
+  next()
+}
 
 /* creates random teams based on a list of candidate users
  *
@@ -45,14 +52,37 @@ function createResponseFunction<T>() {
   }
 }
 
-const sendAPIV1Member = createResponseFunction<APIv1Member | undefined>()
+const sendAPIv1Member = createResponseFunction<APIv1Member | undefined>()
 app.get('/api/v1/member', (_req: Request, res: Response) => {
   getBambooData()
     .then((data)=> {
       if (!data?.employees) throw new Error('there are no employees')
       const randomMember = getRandomTeamsFromMembers(data?.employees, {teamCount: 1, maxTeamSize: 1})[0]?.[0]
-      sendAPIV1Member(res, randomMember)
+      sendAPIv1Member(res, randomMember)
     })
 })
+
+const sendAPIv1Groups = createResponseFunction<APIv1Groups>()
+app.get(
+  '/api/v1/groups',
+  check('groupCount').optional().isInt({min: 1}).toInt(),
+  check('maxGroupSize').optional().isInt({min: 1}).toInt(),
+  respondWith400IfErrors,
+  (req: Request, res: Response) => {
+    const {groupCount, maxGroupSize} = matchedData(req)
+    if (!groupCount && !maxGroupSize) {
+      return res.status(400).json({errors: ['At least one of groupCount, maxGroupSize is required']})
+    }
+    getBambooData()
+      .then((data) => {
+        if (!data?.employees) throw new Error('there are no employees')
+        const groups = getRandomTeamsFromMembers(
+          data?.employees,
+          {teamCount: groupCount, maxTeamSize: maxGroupSize}
+        )
+        sendAPIv1Groups(res, {groups})
+      })
+  }
+)
 
 export default app

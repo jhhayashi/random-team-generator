@@ -13,3 +13,6 @@ export interface User {
 
 export interface APIv1Member extends User {}
 
+export interface APIv1Groups {
+  groups: User[][]
+}
