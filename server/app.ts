@@ -5,6 +5,14 @@ import * as _ from 'lodash'
 import {User, APIv1Member, APIv1Groups} from '../types'
 
 import {getBambooData} from './bamboo'
+import {AppError} from './errors'
+
+const PROD = process.env['NODE_ENV'] == 'production'
+
+if (PROD) {
+  // warm the cache
+  getBambooData()
+}
 
 const app = Express()
 
@@ -53,13 +61,14 @@ function createResponseFunction<T>() {
 }
 
 const sendAPIv1Member = createResponseFunction<APIv1Member | undefined>()
-app.get('/api/v1/member', (_req: Request, res: Response) => {
+app.get('/api/v1/member', (_req: Request, res: Response, next: NextFunction) => {
   getBambooData()
     .then((data)=> {
       if (!data?.employees) throw new Error('there are no employees')
       const randomMember = getRandomTeamsFromMembers(data?.employees, {teamCount: 1, maxTeamSize: 1})[0]?.[0]
       sendAPIv1Member(res, randomMember)
     })
+    .catch(err => next(err))
 })
 
 const sendAPIv1Groups = createResponseFunction<APIv1Groups>()
@@ -68,7 +77,7 @@ app.get(
   check('groupCount').optional().isInt({min: 1}).toInt(),
   check('maxGroupSize').optional().isInt({min: 1}).toInt(),
   respondWith400IfErrors,
-  (req: Request, res: Response) => {
+  (req: Request, res: Response, next: NextFunction) => {
     const {groupCount, maxGroupSize} = matchedData(req)
     if (!groupCount && !maxGroupSize) {
       return res.status(400).json({errors: ['At least one of groupCount, maxGroupSize is required']})
@@ -82,7 +91,13 @@ app.get(
         )
         sendAPIv1Groups(res, {groups})
       })
+      .catch(err => next(err))
   }
 )
+
+app.use((err: Error | AppError, _req: Request, res: Response, _next: NextFunction) => {
+  const statusCode = 'statusCode' in err  && err.statusCode ? err.statusCode : 500
+  if (err) return res.status(statusCode).send(err.message || 'Internal Server Error')
+})
 
 export default app

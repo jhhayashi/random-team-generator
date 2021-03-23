@@ -2,6 +2,8 @@ import * as _ from 'lodash'
 import base64 from 'base-64'
 import fetch from 'node-fetch'
 
+import {AppError} from './errors'
+
 const {
   BAMBOOHR_KEY,
   BAMBOOHR_SUBDOMAIN,
@@ -12,9 +14,9 @@ const {
 const CACHE_EXPIRATION_MS = +CACHE_EXPIRATION_MS_STR
 const ALLOWED_KEYS = ['id', 'displayName', 'preferredName', 'jobTitle', 'department', 'location', 'photoUrl', 'name'] as const
 
-const ENABLED = BAMBOOHR_KEY && BAMBOOHR_SUBDOMAIN
+export const ENABLED = !!(BAMBOOHR_KEY && BAMBOOHR_SUBDOMAIN) || NODE_ENV == 'test'
 
-if (!ENABLED && NODE_ENV !== 'test') console.log('No BAMBOOHR_KEY and BAMBOOHR_SUBDOMAIN. BambooHR integration turned off')
+if (!ENABLED) console.log('No BAMBOOHR_KEY and BAMBOOHR_SUBDOMAIN. BambooHR integration turned off')
 
 type ID = string
 
@@ -145,6 +147,11 @@ export function getNormalizedBambooCache(data: BambooAPIResponse): Required<Cach
 }
 
 export function getBambooData() {
+  if (!ENABLED) {
+    const err: AppError = new Error('BamboooHR integration is disabled')
+    err.statusCode = 410
+    return Promise.reject(err)
+  }
   if (cache.date && cache.date + CACHE_EXPIRATION_MS > Date.now()) return Promise.resolve(cache.data)
 
   const authHeaderValue = `Basic ${base64.encode(`${BAMBOOHR_KEY}:x`)}`
@@ -166,6 +173,3 @@ export function getBambooData() {
 
   return cache.data ? Promise.resolve(cache.data) : dataPromise
 }
-
-// warm the cache
-if (ENABLED) getBambooData()
