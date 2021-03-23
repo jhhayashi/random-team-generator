@@ -1,8 +1,12 @@
-import {ChakraProvider} from '@chakra-ui/react'
+import {ChakraProvider, extendTheme} from '@chakra-ui/react'
+import {AppProps} from 'next/app'
 
-function MyApp({ Component, pageProps }) {
+const config = {useSystemColorMode: true}
+const theme = extendTheme({config})
+
+function MyApp({Component, pageProps}: AppProps) {
   return (
-    <ChakraProvider>
+    <ChakraProvider theme={theme}>
       <Component {...pageProps} />
     </ChakraProvider>
   )
