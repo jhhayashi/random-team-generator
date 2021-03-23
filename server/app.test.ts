@@ -10,7 +10,7 @@ import app, {getRandomTeamsFromMembers} from './app'
 
 const {Response} = jest.requireActual('node-fetch')
 
-const createMockUsers = (n = 3) => Array.from({length: n}, (_, i) => ({id: i.toString(), name: i.toString()}))
+const createMockUsers = (n = 3) => Array.from({length: n}, (_, i) => ({imgUrl: i.toString(),id: i.toString(), name: i.toString()}))
 // [{id: "1", name: "1"}, {id: "2", name: "2"}, {id: "3", name: "3"}]
 const users: User[] = createMockUsers()
 

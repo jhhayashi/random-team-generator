@@ -2,6 +2,8 @@ import * as _ from 'lodash'
 import base64 from 'base-64'
 import fetch from 'node-fetch'
 
+import {User} from '../types'
+
 import {AppError} from './errors'
 
 const {
@@ -12,7 +14,7 @@ const {
 } = process.env
 
 const CACHE_EXPIRATION_MS = +CACHE_EXPIRATION_MS_STR
-const ALLOWED_KEYS = ['id', 'displayName', 'preferredName', 'jobTitle', 'department', 'location', 'photoUrl', 'name'] as const
+const ALLOWED_KEYS = ['id', 'displayName', 'preferredName', 'jobTitle', 'department', 'location', 'imgUrl', 'name'] as const
 
 export const ENABLED = !!(BAMBOOHR_KEY && BAMBOOHR_SUBDOMAIN) || NODE_ENV == 'test'
 
@@ -28,7 +30,7 @@ interface BambooEmployee {
   jobTitle?: string | string[]
   department?: string | string[]
   location?: string | string[]
-  photoUrl?: string
+  photoUrl: string
   supervisor?: string
 }
 
@@ -39,7 +41,7 @@ interface BambooAPIResponse {
 
 // the BambooEmployee type comes from the API call, but the Employee type
 // is the normalized type that we use in the app
-interface Employee extends Omit<BambooEmployee, 'id'|'jobTitle'|'department'|'location'> {
+interface Employee extends User, Omit<BambooEmployee, 'id'|'jobTitle'|'department'|'location'> {
   name: string
   id: ID
   jobTitle?: string
@@ -106,6 +108,7 @@ export function getNormalizedBambooCache(data: BambooAPIResponse): Required<Cach
       jobTitle: _.isArray(e.jobTitle) ? _.last(e.jobTitle) : e.jobTitle,
       department: _.isArray(e.department) ? _.last(e.department) : e.department,
       location: _.isArray(e.location) ? _.last(e.location) : e.location,
+      imgUrl: e.photoUrl,
     }))
 
     // maps ids to the employee object
