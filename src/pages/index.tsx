@@ -63,7 +63,7 @@ export default function Home() {
       ...(maxGroupSize ? {maxGroupSize} : {}),
     }
     const q = queryString.stringify(queryStringArgs, {arrayFormat: 'bracket'})
-    fetch(`/api/v1/groups?${q}`)
+    fetch(`/api/bamboo/v1/groups?${q}`)
       .then(res => res.json())
       .then((randomUsers: APIv1Groups) => {
         setRandomUsers(randomUsers.groups)

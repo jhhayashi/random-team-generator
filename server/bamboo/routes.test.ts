@@ -1,14 +1,18 @@
 jest.mock('node-fetch')
 
 import fetch from 'node-fetch'
+import Express from 'express'
 import request from 'supertest'
 import * as _ from 'lodash'
 
-import {User, APIv1Groups} from '../types'
+import {User, APIv1Groups} from '../../types'
 
-import app, {getRandomTeamsFromMembers} from './app'
+import routes, {getRandomTeamsFromMembers} from './routes'
 
 const {Response} = jest.requireActual('node-fetch')
+
+const app = Express()
+app.use(routes)
 
 const createMockUsers = (n = 3) => Array.from({length: n}, (_, i) => ({imgUrl: i.toString(),id: i.toString(), name: i.toString()}))
 // [{id: "1", name: "1"}, {id: "2", name: "2"}, {id: "3", name: "3"}]
@@ -105,10 +109,10 @@ describe('Endpoint Tests', () => {
     }))))
   })
 
-  describe('Test the /api/v1/member endpoint', () => {
+  describe('Test the /api/bamboo/v1/member endpoint', () => {
     test('Returns a random team member', () => {
       return request(app)
-        .get('/api/v1/member')
+        .get('/api/bamboo/v1/member')
         .expect(200)
         .then(res => {
           const {body} = res
@@ -119,13 +123,13 @@ describe('Endpoint Tests', () => {
     })
   })
 
-  describe('Test the /api/v1/groups endpoint', () => {
-    test('Returns 400 when no query', () => request(app).get('/api/v1/groups').expect(400))
-    test('Returns 400 on bad query', () => request(app).get('/api/v1/groups?groupCount=foo').expect(400))
+  describe('Test the /api/bamboo/v1/groups endpoint', () => {
+    test('Returns 400 when no query', () => request(app).get('/api/bamboo/v1/groups').expect(400))
+    test('Returns 400 on bad query', () => request(app).get('/api/bamboo/v1/groups?groupCount=foo').expect(400))
 
     test('Returns a group with all users when groupCount=1', () => {
       return request(app)
-        .get('/api/v1/groups?groupCount=1')
+        .get('/api/bamboo/v1/groups?groupCount=1')
         .expect(200)
         .then(res => {
           const {body} = res
@@ -142,7 +146,7 @@ describe('Endpoint Tests', () => {
 
     test('Returns all users in single-member groups when maxGroupSize=1', () => {
       return request(app)
-        .get('/api/v1/groups?maxGroupSize=1')
+        .get('/api/bamboo/v1/groups?maxGroupSize=1')
         .expect(200)
         .then(res => {
           const {body} = res
@@ -160,7 +164,7 @@ describe('Endpoint Tests', () => {
 
     test('Returns as expected when groupCount and maxGroupSize as both passed', () => {
       return request(app)
-        .get('/api/v1/groups?groupCount=2&maxGroupSize=2')
+        .get('/api/bamboo/v1/groups?groupCount=2&maxGroupSize=2')
         .expect(200)
         .then(res => {
           const body: APIv1Groups = res.body

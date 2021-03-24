@@ -3,7 +3,7 @@ jest.mock('node-fetch')
 import fetch from 'node-fetch'
 import * as _ from 'lodash'
 
-import {cache, clearCache, getBambooData} from './bamboo'
+import {cache, clearCache, getBambooData} from './data'
 
 const {Response} = jest.requireActual('node-fetch')
 

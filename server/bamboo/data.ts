@@ -2,9 +2,8 @@ import * as _ from 'lodash'
 import base64 from 'base-64'
 import fetch from 'node-fetch'
 
-import {User} from '../types'
-
-import {AppError} from './errors'
+import {User} from '../../types'
+import {AppError} from '../errors'
 
 const {
   BAMBOOHR_KEY,
