@@ -4,9 +4,10 @@ import * as _ from 'lodash'
 
 import {getBambooData} from './data'
 
-import {User, APIv1Member, APIv1Groups} from '../../types'
+import {User, APIv1Member, APIv1Groups, APIv1Teams, APIv1Managers} from '../../types'
 
 const PROD = process.env['NODE_ENV'] == 'production'
+const PREFIX = '/api/bamboo'
 
 if (PROD) {
   // warm the cache
@@ -60,7 +61,7 @@ export function getRandomTeamsFromMembers(
 }
 
 const sendAPIv1Member = createResponseFunction<APIv1Member | undefined>()
-router.get('/api/bamboo/v1/member', (_req: Request, res: Response, next: NextFunction) => {
+router.get(`${PREFIX}/v1/member`, (_req: Request, res: Response, next: NextFunction) => {
   getBambooData()
     .then((data)=> {
       if (!data?.employees) throw new Error('there are no employees')
@@ -72,7 +73,7 @@ router.get('/api/bamboo/v1/member', (_req: Request, res: Response, next: NextFun
 
 const sendAPIv1Groups = createResponseFunction<APIv1Groups>()
 router.get(
-  '/api/bamboo/v1/groups',
+  `${PREFIX}/v1/groups`,
   check('groupCount').optional().isInt({min: 1}).toInt(),
   check('maxGroupSize').optional().isInt({min: 1}).toInt(),
   respondWith400IfErrors,
@@ -93,5 +94,22 @@ router.get(
       .catch(err => next(err))
   }
 )
+
+const sendAPIv1Teams = createResponseFunction<APIv1Teams>()
+router.get(`${PREFIX}/v1/teams`, (_req: Request, res: Response, next: NextFunction) => {
+  getBambooData()
+    .then(data => sendAPIv1Teams(res, _.map(data?.teamNames, name => ({name}))))
+    .catch(err => next(err))
+})
+
+const sendAPIv1Managers = createResponseFunction<APIv1Managers>()
+router.get(`${PREFIX}/v1/managers`, (_req: Request, res: Response, next: NextFunction) => {
+  getBambooData()
+    .then(data => {
+      const managers = data?.managerIds.map(id => _.pick(data.ids[id], ['name', 'imgUrl'])).filter((m): m is APIv1Managers[number] => !_.isEmpty(m)) || []
+      return sendAPIv1Managers(res, managers)
+    })
+    .catch(err => next(err))
+})
 
 export default router
