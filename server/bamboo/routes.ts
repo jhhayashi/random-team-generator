@@ -4,7 +4,7 @@ import * as _ from 'lodash'
 
 import {getBambooData} from './data'
 
-import {User, APIv1Member, APIv1Groups, APIv1Teams, APIv1Managers} from '../../types'
+import {User, Filter, APIv1Member, APIv1Filters, APIv1Groups, APIv1Teams, APIv1Managers} from '../../types'
 
 const PROD = process.env['NODE_ENV'] == 'production'
 const PREFIX = '/api/bamboo'
@@ -96,20 +96,31 @@ router.get(
 )
 
 const sendAPIv1Teams = createResponseFunction<APIv1Teams>()
-router.get(`${PREFIX}/v1/teams`, (_req: Request, res: Response, next: NextFunction) => {
+const teamsUrl = `${PREFIX}/v1/teams`
+router.get(teamsUrl, (_req: Request, res: Response, next: NextFunction) => {
   getBambooData()
     .then(data => sendAPIv1Teams(res, _.map(data?.teamNames, name => ({name}))))
     .catch(err => next(err))
 })
 
 const sendAPIv1Managers = createResponseFunction<APIv1Managers>()
-router.get(`${PREFIX}/v1/managers`, (_req: Request, res: Response, next: NextFunction) => {
+const managersUrl = `${PREFIX}/v1/managers`
+router.get(managersUrl, (_req: Request, res: Response, next: NextFunction) => {
   getBambooData()
     .then(data => {
       const managers = data?.managerIds.map(id => _.pick(data.ids[id], ['name', 'imgUrl'])).filter((m): m is APIv1Managers[number] => !_.isEmpty(m)) || []
       return sendAPIv1Managers(res, managers)
     })
     .catch(err => next(err))
+})
+
+const sendAPIv1Filters = createResponseFunction<APIv1Filters>()
+router.get(`${PREFIX}/v1/filters`, (_req: Request, res: Response) => {
+  const filters: Filter[] = [
+    {type: "multiselect", name: 'manager', url: managersUrl},
+    {type: "multiselect", name: 'team', url: teamsUrl},
+  ]
+  sendAPIv1Filters(res, filters)
 })
 
 export default router
