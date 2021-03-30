@@ -6,18 +6,12 @@ import {
   Button,
   Center,
   Divider,
-  FormControl,
-  FormLabel,
   Heading,
   Image,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
   Wrap,
 } from '@chakra-ui/react'
 
+import NumberFilter from '../components/NumberFilter'
 import {APIv1Groups, User as UserType} from '../../types'
 
 function User(props: UserType) {
@@ -76,26 +70,20 @@ export default function Home() {
 
   const controls = (
     <Box>
-      <FormControl>
-        <FormLabel>Number of groups (set to 0 to return all users in groups)</FormLabel>
-        <NumberInput maxW={400} min={0} step={1} onChange={val => setGroupCount(+val)} value={groupCount}>
-          <NumberInputField />
-          <NumberInputStepper>
-            <NumberIncrementStepper />
-            <NumberDecrementStepper />
-          </NumberInputStepper>
-        </NumberInput>
-      </FormControl>
-      <FormControl>
-        <FormLabel>(Maximum) Number of users to return per group (set to 0 to return all users in the number of groups specified above)</FormLabel>
-        <NumberInput maxW={400} min={0} step={1} onChange={val => setMaxGroupSize(+val)} value={maxGroupSize}>
-          <NumberInputField />
-          <NumberInputStepper>
-            <NumberIncrementStepper />
-            <NumberDecrementStepper />
-          </NumberInputStepper>
-        </NumberInput>
-      </FormControl>
+      <NumberFilter
+        label="Number of groups (set to 0 to return all users in groups)"
+        inputStyles={{maxW: 400}}
+        min={0}
+        onChange={val => setGroupCount(+val)}
+        value={groupCount}
+      />
+      <NumberFilter
+        label="(Maximum) Number of users to return per group (set to 0 to return all users in the number of groups specified above)"
+        inputStyles={{maxW: 400}}
+        min={0}
+        onChange={val => setMaxGroupSize(+val)}
+        value={maxGroupSize}
+      />
       <Button my={4} onClick={getData}>Reroll</Button>
     </Box>
   )
