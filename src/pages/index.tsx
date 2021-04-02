@@ -1,5 +1,6 @@
 import * as React from "react"
-import {useCallback, useState, useEffect} from 'react'
+import * as _ from 'lodash'
+import {useState, useEffect} from 'react'
 import queryString from 'query-string'
 import {
   Box,
@@ -11,8 +12,10 @@ import {
   Wrap,
 } from '@chakra-ui/react'
 
+import CheckboxFilter from '../components/CheckboxFilter'
 import NumberFilter from '../components/NumberFilter'
-import {APIv1Groups, User as UserType} from '../../types'
+import MultiselectFilter from '../components/MultiselectFilter'
+import {APIv1Filters, APIv1Groups, Filter, User as UserType} from '../../types'
 
 function User(props: UserType) {
   const {name, imgUrl} = props
@@ -50,23 +53,37 @@ export default function Home() {
   const [randomUsers, setRandomUsers] = useState<UserType[][] | null>(null)
   const [maxGroupSize, setMaxGroupSize] = useState(1)
   const [groupCount, setGroupCount] = useState(1)
+  const [availableFilters, setAvailableFilters] = useState<Filter[]>([])
+  const [filterState, setFilterState] = useState<{[filterName: string]: any}>({})
 
-  const getData = useCallback(() => {
-    const queryStringArgs = {
-      ...(groupCount ? {groupCount} : {}),
-      ...(maxGroupSize ? {maxGroupSize} : {}),
-    }
+  function getData(){
+    const dynamicFilters = _.mapValues(filterState, vals => _.isArray(vals) ? _.map(vals, 'value') : vals)
+    const queryStringArgs = _.omitBy(
+      {groupCount, maxGroupSize, ...dynamicFilters},
+      (val: any) => val == null || (_.isArray(val) && !val.length) || (_.isNumber(val) && (val < 1))
+    )
     const q = queryString.stringify(queryStringArgs, {arrayFormat: 'bracket'})
     fetch(`/api/bamboo/v1/groups?${q}`)
       .then(res => res.json())
       .then((randomUsers: APIv1Groups) => {
         setRandomUsers(randomUsers.groups)
       })
-  }, [maxGroupSize, groupCount])
+  }
+
+  useEffect(getData, [maxGroupSize, groupCount, filterState])
 
   useEffect(() => {
-    getData()
-  }, [maxGroupSize, groupCount, getData])
+    fetch('/api/bamboo/v1/filters')
+      .then(res => res.json())
+      .then((filters: APIv1Filters) => {
+        setAvailableFilters(filters)
+        setFilterState(
+          _.fromPairs(
+            filters.map(({name, type}) => ([name, type == 'multiselect' ? [] : undefined]))
+          )
+        )
+      })
+  }, [])
 
   const controls = (
     <Box>
@@ -84,6 +101,23 @@ export default function Home() {
         onChange={val => setMaxGroupSize(+val)}
         value={maxGroupSize}
       />
+      {availableFilters.map(({name, label, type, url}) => (
+        <>
+          {type == 'multiselect' && <MultiselectFilter
+            name={name}
+            url={url}
+            label={label}
+            value={filterState[name]}
+            onChange={newVal => setFilterState({...filterState, [name]: newVal})}
+            inputStyles={{maxW: 400}}
+          />}
+          {type == 'checkbox' && <CheckboxFilter
+            label={label}
+            value={filterState[name]}
+            onChange={newVal => setFilterState({...filterState, [name]: newVal})}
+          />}
+        </>
+      ))}
       <Button my={4} onClick={getData}>Reroll</Button>
     </Box>
   )
