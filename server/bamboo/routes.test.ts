@@ -100,14 +100,29 @@ describe('Test getRandomTeamsFromMembers()', () => {
     expect(() => getRandomTeamsFromMembers(users, {maxTeamSize: 0, teamCount: 1})).toThrow()
   })
 })
+
 describe('Endpoint Tests', () => {
-  beforeEach(() => {
-    // @ts-ignore
-    fetch.mockReturnValue(Promise.resolve(new Response(JSON.stringify({
-      fields: [],
-      employees: users,
-    }))))
-  })
+  //    1
+  //   /  \
+  //  2     3
+  //  /\    /\
+  // 4  5  6  7
+  const mockUsers = [
+    {id: "1", name: "One",   supervisor: ''},
+    {id: "2", name: "Two",   department: "A", supervisor: 'One'},
+    {id: "3", name: "Three", department: "A", supervisor: 'One'},
+    {id: "4", name: "Four",  department: "", supervisor: 'Two'},
+    {id: "5", name: "Five",  department: "B", supervisor: 'Two'},
+    {id: "6", name: "Six",   department: "B", supervisor: 'Three'},
+    {id: "7", name: "Seven", department: "B", supervisor: 'Three'},
+  ]
+
+  // we don't need to do beforeEach() here, since the result should be cached
+  // @ts-ignore
+  fetch.mockReturnValue(Promise.resolve(new Response(JSON.stringify({
+    fields: [],
+    employees: mockUsers,
+  }))))
 
   describe('Test the /api/bamboo/v1/member endpoint', () => {
     test('Returns a random team member', () => {
@@ -125,7 +140,11 @@ describe('Endpoint Tests', () => {
 
   describe('Test the /api/bamboo/v1/groups endpoint', () => {
     test('Returns 400 when no query', () => request(app).get('/api/bamboo/v1/groups').expect(400))
-    test('Returns 400 on bad query', () => request(app).get('/api/bamboo/v1/groups?groupCount=foo').expect(400))
+    test('Returns 400 on invalid groupCount', () => request(app).get('/api/bamboo/v1/groups?groupCount=foo').expect(400))
+    test('Returns 400 on invalid maxGroupSize', () => request(app).get('/api/bamboo/v1/groups?maxGroupSize=-1').expect(400))
+    test('Returns 400 on invalid managers', () => request(app).get('/api/bamboo/v1/groups?groupCount=1&managers=foo').expect(400))
+    test('Returns 400 on invalid teams', () => request(app).get('/api/bamboo/v1/groups?groupCount=1&teams=1').expect(400))
+    test('Returns 400 on invalid includeManagers', () => request(app).get('/api/bamboo/v1/groups?groupCount=1&includeManagers=').expect(400))
 
     test('Returns a group with all users when groupCount=1', () => {
       return request(app)
@@ -137,7 +156,7 @@ describe('Endpoint Tests', () => {
           const {groups} = body
           expect(groups).toHaveLength(1)
           const group = groups[0]
-          expect(group).toHaveLength(users.length)
+          expect(group).toHaveLength(mockUsers.length)
           const member = group[0]
           expect(member).toHaveProperty("id", expect.any(String))
           expect(member).toHaveProperty("name", expect.any(String))
@@ -151,8 +170,8 @@ describe('Endpoint Tests', () => {
         .then(res => {
           const {body} = res
           if (!body) throw new Error("must have a body")
-          const groups: Array<typeof users> = body.groups
-          expect(groups).toHaveLength(users.length)
+          const groups: Array<typeof mockUsers> = body.groups
+          expect(groups).toHaveLength(mockUsers.length)
           groups.forEach(group => {
             expect(group).toHaveLength(1)
             const member = group[0]
@@ -170,8 +189,56 @@ describe('Endpoint Tests', () => {
           const body: APIv1Groups = res.body
           const {groups} = body
           expect(groups[0]).toHaveLength(2)
-          expect(groups[1]).toHaveLength(Math.min(users.length - 2, 2))
+          expect(groups[1]).toHaveLength(Math.min(mockUsers.length - 2, 2))
         })
+    })
+
+    test('Filters by manager', () => {
+        return request(app)
+          .get('/api/bamboo/v1/groups?groupCount=1&managers[]=Two')
+          .expect(200)
+          .then(res => {
+            const body: APIv1Groups = res.body
+            const {groups} = body
+            expect(groups[0]).toHaveLength(2)
+            expect(groups[0]?.map(users => users.id).sort()).toEqual(["4", "5"])
+          })
+    })
+
+    test('Filters by team', () => {
+        return request(app)
+          .get('/api/bamboo/v1/groups?groupCount=1&teams[]=A')
+          .expect(200)
+          .then(res => {
+            const body: APIv1Groups = res.body
+            const {groups} = body
+            expect(groups[0]).toHaveLength(2)
+            expect(groups[0]?.map(users => users.id).sort()).toEqual(["2", "3"])
+          })
+    })
+
+    test('Filters by manager and team', () => {
+        return request(app)
+          .get('/api/bamboo/v1/groups?groupCount=1&teams[]=B&managers[]=Two')
+          .expect(200)
+          .then(res => {
+            const body: APIv1Groups = res.body
+            const {groups} = body
+            expect(groups[0]).toHaveLength(1)
+            expect(groups[0]?.[0]?.id).toBe("5")
+          })
+    })
+
+    test('Includes manager when specified', () => {
+        return request(app)
+          .get('/api/bamboo/v1/groups?groupCount=1&managers[]=Two&includeManagers=true')
+          .expect(200)
+          .then(res => {
+            const body: APIv1Groups = res.body
+            const {groups} = body
+            expect(groups[0]).toHaveLength(3)
+            expect(groups[0]?.map(users => users.id).sort()).toEqual(["2", "4", "5"])
+          })
     })
   })
 })

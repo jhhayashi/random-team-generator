@@ -2,7 +2,7 @@ import Express, {NextFunction, Request, Response} from 'express'
 import {check, matchedData, validationResult} from 'express-validator'
 import * as _ from 'lodash'
 
-import {getBambooData} from './data'
+import {Cache, getBambooData} from './data'
 
 import {User, Filter, APIv1Member, APIv1Filters, APIv1Groups, APIv1Teams, APIv1Managers} from '../../types'
 
@@ -60,6 +60,21 @@ export function getRandomTeamsFromMembers(
   return teams
 }
 
+export function filterByManager(cache: Required<Cache>['data'], users: User[], managers?: string[], includeManagers?: boolean): User[] {
+  if (!managers) return users
+  const candidateUserIds = new Set([
+    ..._.flatMap(managers, manager => cache.byTransitiveReports[manager] || []),
+    ...(includeManagers ? managers.map(name => cache.byName[name]).filter(Boolean) : [])
+  ])
+  return users.filter(user => candidateUserIds.has(user.id))
+}
+
+export function filterByTeam(cache: Required<Cache>['data'], users: User[], teams?: string[]): User[] {
+  if (!teams) return users
+  const candidateUserIds = new Set(_.flatMap(teams, team=> cache.byTeam[team] || []))
+  return users.filter(user => candidateUserIds.has(user.id))
+}
+
 const sendAPIv1Member = createResponseFunction<APIv1Member | undefined>()
 router.get(`${PREFIX}/v1/member`, (_req: Request, res: Response, next: NextFunction) => {
   getBambooData()
@@ -74,19 +89,21 @@ router.get(`${PREFIX}/v1/member`, (_req: Request, res: Response, next: NextFunct
 const sendAPIv1Groups = createResponseFunction<APIv1Groups>()
 router.get(
   `${PREFIX}/v1/groups`,
-  check('groupCount').optional().isInt({min: 1}).toInt(),
-  check('maxGroupSize').optional().isInt({min: 1}).toInt(),
+  check(['groupCount', 'maxGroupSize']).optional().isInt({min: 1}).toInt(),
+  check(['managers', 'teams']).optional().isArray({min: 1}).toArray(),
+  check('includeManagers').optional().isBoolean().toBoolean(),
   respondWith400IfErrors,
   (req: Request, res: Response, next: NextFunction) => {
-    const {groupCount, maxGroupSize} = matchedData(req)
+    const {groupCount, includeManagers, maxGroupSize, managers, teams} = matchedData(req)
     if (!groupCount && !maxGroupSize) {
       return res.status(400).json({errors: ['At least one of groupCount, maxGroupSize is required']})
     }
     getBambooData()
       .then((data) => {
         if (!data?.employees) throw new Error('there are no employees')
+        const candidateMembers = filterByManager(data, filterByTeam(data, data.employees, teams), managers, includeManagers)
         const groups = getRandomTeamsFromMembers(
-          data?.employees,
+          candidateMembers,
           {teamCount: groupCount, maxTeamSize: maxGroupSize}
         )
         sendAPIv1Groups(res, {groups})
@@ -117,8 +134,9 @@ router.get(managersUrl, (_req: Request, res: Response, next: NextFunction) => {
 const sendAPIv1Filters = createResponseFunction<APIv1Filters>()
 router.get(`${PREFIX}/v1/filters`, (_req: Request, res: Response) => {
   const filters: Filter[] = [
-    {type: "multiselect", name: 'manager', url: managersUrl},
-    {type: "multiselect", name: 'team', url: teamsUrl},
+    {type: "multiselect", name: 'managers', url: managersUrl},
+    {type: "checkbox", name: 'includeManagers', label: 'Include managers in the teams'},
+    {type: "multiselect", name: 'teams', url: teamsUrl},
   ]
   sendAPIv1Filters(res, filters)
 })

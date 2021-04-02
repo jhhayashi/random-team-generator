@@ -51,7 +51,7 @@ interface Employee extends User, Omit<BambooEmployee, 'id'|'jobTitle'|'departmen
 // we only ALLOWED_KEYS so that we don't expose any sensitive information
 type CachedEmployee = Pick<Employee, typeof ALLOWED_KEYS[number]>
 
-interface Cache {
+export interface Cache {
   date?: number // Date.now()
   data?: {
     ids: {[id: string]: CachedEmployee}
