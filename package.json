@@ -23,6 +23,7 @@
   "dependencies": {
     "@types/node-fetch": "^2.5.8",
     "base-64": "^1.0.0",
+    "date-fns": "^2.19.0",
     "express": "^4.17.1",
     "express-validator": "^6.10.0",
     "lodash": "^4.17.21",

@@ -117,12 +117,20 @@ describe('Endpoint Tests', () => {
     {id: "7", name: "Seven", department: "B", supervisor: 'Three'},
   ]
 
+  const oooBlocks = [
+    {id: "1", employeeId: "1", start: "2000-01-01", end: "2000-02-01"},
+    {id: "2", employeeId: "2", start: "2000-02-01", end: "2000-03-01"},
+  ]
+
   // we don't need to do beforeEach() here, since the result should be cached
-  // @ts-ignore
-  fetch.mockReturnValue(Promise.resolve(new Response(JSON.stringify({
-    fields: [],
-    employees: mockUsers,
-  }))))
+  fetch
+    // @ts-ignore
+    .mockReturnValueOnce(Promise.resolve(new Response(JSON.stringify({
+      fields: [],
+      employees: mockUsers,
+    }))))
+    // @ts-ignore
+    .mockReturnValueOnce(Promise.resolve(new Response(JSON.stringify(oooBlocks))))
 
   describe('Test the /api/bamboo/v1/member endpoint', () => {
     test('Returns a random team member', () => {
@@ -238,6 +246,20 @@ describe('Endpoint Tests', () => {
             const {groups} = body
             expect(groups[0]).toHaveLength(3)
             expect(groups[0]?.map(users => users.id).sort()).toEqual(["2", "4", "5"])
+          })
+    })
+
+    test('Filters out people who are OOO', () => {
+        return request(app)
+          .get('/api/bamboo/v1/groups?groupCount=1&oooDate=2000-02-01')
+          .expect(200)
+          .then(res => {
+            const body: APIv1Groups = res.body
+            const {groups} = body
+            expect(groups[0]).toHaveLength(mockUsers.length - 2)
+            const userIds = new Set(groups[0]?.map(({id}) => id))
+            expect(userIds.has("1")).toBeFalsy()
+            expect(userIds.has("2")).toBeFalsy()
           })
     })
   })

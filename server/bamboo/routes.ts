@@ -1,5 +1,6 @@
 import Express, {NextFunction, Request, Response} from 'express'
 import {check, matchedData, validationResult} from 'express-validator'
+const {addDays, isMatch, parseISO, isWithinInterval} = require('date-fns')
 import * as _ from 'lodash'
 
 import {Cache, getBambooData} from './data'
@@ -60,7 +61,7 @@ export function getRandomTeamsFromMembers(
   return teams
 }
 
-export function filterByManager(cache: Required<Cache>['data'], users: User[], managers?: string[], includeManagers?: boolean): User[] {
+function filterByManager(cache: Required<Cache>['data'], users: User[], managers?: string[], includeManagers?: boolean): User[] {
   if (!managers) return users
   const candidateUserIds = new Set([
     ..._.flatMap(managers, manager => cache.byTransitiveReports[manager] || []),
@@ -69,10 +70,21 @@ export function filterByManager(cache: Required<Cache>['data'], users: User[], m
   return users.filter(user => candidateUserIds.has(user.id))
 }
 
-export function filterByTeam(cache: Required<Cache>['data'], users: User[], teams?: string[]): User[] {
+function filterByTeam(cache: Required<Cache>['data'], users: User[], teams?: string[]): User[] {
   if (!teams) return users
   const candidateUserIds = new Set(_.flatMap(teams, team=> cache.byTeam[team] || []))
   return users.filter(user => candidateUserIds.has(user.id))
+}
+
+function filterByOoo(cache: Required<Cache>['data'], users: User[], date?: string): User[] {
+  if (!date) return users
+  const oooBlocks = cache.ooo?.filter(employee => isWithinInterval(
+    parseISO(date),
+    // add a day to the end date to make the range inclusive
+    {start: parseISO(employee.start), end: addDays(parseISO(employee.end), 1)}
+  )) || []
+  const oooUsers = new Set(oooBlocks.map(({employeeId}) => employeeId))
+  return users.filter(user => !oooUsers.has(user.id))
 }
 
 const sendAPIv1Member = createResponseFunction<APIv1Member | undefined>()
@@ -92,16 +104,18 @@ router.get(
   check(['groupCount', 'maxGroupSize']).optional().isInt({min: 1}).toInt(),
   check(['managers', 'teams']).optional().isArray({min: 1}).toArray(),
   check('includeManagers').optional().isBoolean().toBoolean(),
+  check('oooDate', 'oooDate must be of form tttt-MM-dd').optional().custom(val => isMatch(val, 'yyyy-MM-dd')),
   respondWith400IfErrors,
   (req: Request, res: Response, next: NextFunction) => {
-    const {groupCount, includeManagers, maxGroupSize, managers, teams} = matchedData(req)
+    const {groupCount, includeManagers, maxGroupSize, managers, oooDate, teams} = matchedData(req)
     if (!groupCount && !maxGroupSize) {
       return res.status(400).json({errors: ['At least one of groupCount, maxGroupSize is required']})
     }
     getBambooData()
       .then((data) => {
         if (!data?.employees) throw new Error('there are no employees')
-        const candidateMembers = filterByManager(data, filterByTeam(data, data.employees, teams), managers, includeManagers)
+        const inOffice = filterByOoo(data, data.employees, oooDate)
+        const candidateMembers = filterByManager(data, filterByTeam(data, inOffice, teams), managers, includeManagers)
         const groups = getRandomTeamsFromMembers(
           candidateMembers,
           {teamCount: groupCount, maxTeamSize: maxGroupSize}

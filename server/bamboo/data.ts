@@ -51,6 +51,13 @@ interface Employee extends User, Omit<BambooEmployee, 'id'|'jobTitle'|'departmen
 // we only ALLOWED_KEYS so that we don't expose any sensitive information
 type CachedEmployee = Pick<Employee, typeof ALLOWED_KEYS[number]>
 
+interface OOOBlock {
+  id: ID
+  employeeId: ID
+  start: string // yyyy-MM-dd
+  end: string   // yyyy-MM-dd
+}
+
 export interface Cache {
   date?: number // Date.now()
   data?: {
@@ -63,6 +70,7 @@ export interface Cache {
     teamNames: string[]
     managerNames: string[]
     managerIds: ID[]
+    ooo?: OOOBlock[]
   }
 }
 
@@ -160,18 +168,27 @@ export function getBambooData() {
   const dataPromise = fetch(
     `https://api.bamboohr.com/api/gateway.php/${BAMBOOHR_SUBDOMAIN}/v1/employees/directory`,
     {headers: {accept: 'application/json', authorization: authHeaderValue}},
-  )
-    .then(res => res.json())
-    .then((response: BambooAPIResponse) => {
+  ).then(res => res.json())
+  const oooPromise = fetch(
+    'https://api.bamboohr.com/api/gateway.php/kensho/v1/time_off/whos_out/',
+    {headers: {accept: 'application/json', authorization: authHeaderValue}},
+  ).then(res => res.json())
+
+  const allPromises = Promise.all([dataPromise, oooPromise])
+    .then(([dataResponse, oooData]: [BambooAPIResponse, OOOBlock[]]) => {
       cache.date = Date.now()
-      const data = getNormalizedBambooCache(response)
+      const data: Required<Cache>['data'] = {
+        ...getNormalizedBambooCache(dataResponse),
+        ooo: oooData.map(e => ({end: e.end, start: e.start, employeeId: `${e.employeeId}`, id: `${e.id}`})),
+      }
 
       cache.data = data
       if (NODE_ENV != 'test') {
         console.log(`[${new Date().toLocaleString('en-US')}] BambooHR cache warmed with ${data.employees.length} employees`)
+        console.log(`[${new Date().toLocaleString('en-US')}] BambooHR cache warmed with ${oooData.length} OOO blocks`)
       }
       return data
     })
 
-  return cache.data ? Promise.resolve(cache.data) : dataPromise
+  return cache.data ? Promise.resolve(cache.data) : allPromises
 }

@@ -13,15 +13,18 @@ const users = createMockUsers()
 
 beforeEach(() => {
   clearCache()
-  jest.clearAllMocks()
 })
 
 function setUsers(mockUsers: {[k: string]: any}[] = users) {
-  // @ts-ignore
-  fetch.mockReturnValue(Promise.resolve(new Response(JSON.stringify({
-    fields: [],
-    employees: mockUsers,
-  }))))
+  jest.resetAllMocks()
+  fetch
+    // @ts-ignore
+    .mockReturnValueOnce(Promise.resolve(new Response(JSON.stringify({
+      fields: [],
+      employees: mockUsers,
+    }))))
+    // @ts-ignore
+    .mockReturnValueOnce(Promise.resolve(new Response(JSON.stringify([]))))
 }
 
 describe('caching behavior', () => {
@@ -31,7 +34,7 @@ describe('caching behavior', () => {
     setUsers(mockUsers)
     return getBambooData()
       .then(() => {
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(fetch).toHaveBeenCalledTimes(2);
         [
           ['ids', mockUserCount],
           ['employees', mockUserCount],
@@ -91,7 +94,7 @@ describe('aggregations', () => {
     ])
     return getBambooData()
       .then(() => {
-        expect(fetch).toHaveBeenCalledTimes(1)
+        expect(fetch).toHaveBeenCalledTimes(2)
         expect(cache.data?.employees).toHaveLength(3);
         [
           ["1", "1"],
