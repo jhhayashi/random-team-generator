@@ -6,7 +6,7 @@ export interface User {
 }
 
 export interface Filter {
-  type: "multiselect" | "checkbox"
+  type: "multiselect" | "checkbox" | "date"
   name: string // e.g. "manager"
   label?: string // to be shown in the form input label, e.g. "Filter by manager"
   url?: string

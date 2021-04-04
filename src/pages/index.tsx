@@ -13,6 +13,7 @@ import {
 } from '@chakra-ui/react'
 
 import CheckboxFilter from '../components/CheckboxFilter'
+import DateFilter from '../components/DateFilter'
 import NumberFilter from '../components/NumberFilter'
 import MultiselectFilter from '../components/MultiselectFilter'
 import {APIv1Filters, APIv1Groups, Filter, User as UserType} from '../../types'
@@ -49,6 +50,11 @@ function renderAllGroups(users: UserType[][] | null) {
   ))
 }
 
+function formatFilterValues(val: any) {
+  if (_.isArray(val)) return val.map(({value}) => value)
+  return val
+}
+
 export default function Home() {
   const [randomUsers, setRandomUsers] = useState<UserType[][] | null>(null)
   const [maxGroupSize, setMaxGroupSize] = useState(1)
@@ -57,7 +63,7 @@ export default function Home() {
   const [filterState, setFilterState] = useState<{[filterName: string]: any}>({})
 
   function getData(){
-    const dynamicFilters = _.mapValues(filterState, vals => _.isArray(vals) ? _.map(vals, 'value') : vals)
+    const dynamicFilters = _.mapValues(filterState, formatFilterValues)
     const queryStringArgs = _.omitBy(
       {groupCount, maxGroupSize, ...dynamicFilters},
       (val: any) => val == null || (_.isArray(val) && !val.length) || (_.isNumber(val) && (val < 1))
@@ -112,6 +118,11 @@ export default function Home() {
             inputStyles={{maxW: 400}}
           />}
           {type == 'checkbox' && <CheckboxFilter
+            label={label}
+            value={filterState[name]}
+            onChange={newVal => setFilterState({...filterState, [name]: newVal})}
+          />}
+          {type == 'date' && <DateFilter
             label={label}
             value={filterState[name]}
             onChange={newVal => setFilterState({...filterState, [name]: newVal})}

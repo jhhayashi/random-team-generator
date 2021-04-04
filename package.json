@@ -28,7 +28,8 @@
     "express-validator": "^6.10.0",
     "lodash": "^4.17.21",
     "next": "^10.1.2",
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.1",
+    "react-day-picker": "^8.0.0-beta.29"
   },
   "devDependencies": {
     "@chakra-ui/react": "^1.4.1",

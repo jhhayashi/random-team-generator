@@ -151,6 +151,7 @@ router.get(`${PREFIX}/v1/filters`, (_req: Request, res: Response) => {
     {type: "multiselect", name: 'managers', url: managersUrl},
     {type: "checkbox", name: 'includeManagers', label: 'Include managers in the teams'},
     {type: "multiselect", name: 'teams', url: teamsUrl},
+    {type: "date", name: "oooDate", label: "Exclude people who are out of office on a date"},
   ]
   sendAPIv1Filters(res, filters)
 })
