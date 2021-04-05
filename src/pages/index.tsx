@@ -116,6 +116,7 @@ export default function Home() {
             value={filterState[name]}
             onChange={newVal => setFilterState({...filterState, [name]: newVal})}
             inputStyles={{maxW: 400}}
+            listStyles={{maxW: 400}}
           />}
           {type == 'checkbox' && <CheckboxFilter
             label={label}
@@ -123,6 +124,7 @@ export default function Home() {
             onChange={newVal => setFilterState({...filterState, [name]: newVal})}
           />}
           {type == 'date' && <DateFilter
+            inputStyles={{maxW: 400}}
             label={label}
             value={filterState[name]}
             onChange={newVal => setFilterState({...filterState, [name]: newVal})}
