@@ -24,7 +24,7 @@ export default function DateFilter (props: DateFilterProps) {
   })
 
   return (
-    <FormControl {...styles}>
+    <FormControl display="flex" flexDirection="column" {...styles}>
       {label && <FormLabel>{label}</FormLabel>}
       <Input placeholder="YYYY-MM-DD" {...inputStyles} {...fieldProps} />
       <DayPicker {...dayPickerProps} />

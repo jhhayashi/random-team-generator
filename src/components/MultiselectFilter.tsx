@@ -73,6 +73,7 @@ export default function MultiselectFilter(props: MultiselectFilterProps) {
             }}
             itemRenderer={renderDropdownItem}
             listStyleProps={{color: "black", ...listStyles}}
+            toggleButtonStyleProps={{display: 'none'}}
           />
       )}
     </FormControl>
