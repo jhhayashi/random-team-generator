@@ -55,17 +55,32 @@ function formatFilterValues(val: any) {
   return val
 }
 
+const staticFilters: Filter[] = [
+  {
+    type: "number",
+    name: "groupCount",
+    label:"Number of groups (set to 0 to return all users in groups)",
+    min: 0,
+    defaultValue: 1,
+  },
+  {
+    type: "number",
+    name: "maxGroupSize",
+    label:"(Maximum) Number of users to return per group (set to 0 to return all users in the number of groups specified above)",
+    min: 0,
+    defaultValue: 1,
+  },
+]
+
 export default function Home() {
   const [randomUsers, setRandomUsers] = useState<UserType[][] | null>(null)
-  const [maxGroupSize, setMaxGroupSize] = useState(1)
-  const [groupCount, setGroupCount] = useState(1)
-  const [availableFilters, setAvailableFilters] = useState<Filter[]>([])
+  const [availableFilters, setAvailableFilters] = useState<Filter[]>(staticFilters)
   const [filterState, setFilterState] = useState<{[filterName: string]: any}>({})
 
   function getData(){
     const dynamicFilters = _.mapValues(filterState, formatFilterValues)
     const queryStringArgs = _.omitBy(
-      {groupCount, maxGroupSize, ...dynamicFilters},
+      dynamicFilters,
       (val: any) => val == null || (_.isArray(val) && !val.length) || (_.isNumber(val) && (val < 1))
     )
     const q = queryString.stringify(queryStringArgs, {arrayFormat: 'bracket'})
@@ -76,16 +91,17 @@ export default function Home() {
       })
   }
 
-  useEffect(getData, [maxGroupSize, groupCount, filterState])
+  useEffect(getData, [filterState])
 
   useEffect(() => {
     fetch('/api/bamboo/v1/filters')
       .then(res => res.json())
-      .then((filters: APIv1Filters) => {
+      .then((dynamicFilters: APIv1Filters) => {
+        const filters = [...staticFilters, ...dynamicFilters]
         setAvailableFilters(filters)
         setFilterState(
           _.fromPairs(
-            filters.map(({name, type}) => ([name, type == 'multiselect' ? [] : undefined]))
+            filters.map(({name, type, defaultValue}) => ([name, defaultValue || (type == 'multiselect' ? [] : undefined)]))
           )
         )
       })
@@ -93,20 +109,6 @@ export default function Home() {
 
   const controls = (
     <Box>
-      <NumberFilter
-        label="Number of groups (set to 0 to return all users in groups)"
-        inputStyles={{maxW: 400}}
-        min={0}
-        onChange={val => setGroupCount(+val)}
-        value={groupCount}
-      />
-      <NumberFilter
-        label="(Maximum) Number of users to return per group (set to 0 to return all users in the number of groups specified above)"
-        inputStyles={{maxW: 400}}
-        min={0}
-        onChange={val => setMaxGroupSize(+val)}
-        value={maxGroupSize}
-      />
       {availableFilters.map(({name, label, type, url}) => (
         <>
           {type == 'multiselect' && <MultiselectFilter
@@ -129,6 +131,12 @@ export default function Home() {
             value={filterState[name]}
             onChange={newVal => setFilterState({...filterState, [name]: newVal})}
           />}
+          {type == 'number' && <NumberFilter
+            label={label}
+            inputStyles={{maxW: 400}}
+            value={filterState[name]}
+            onChange={newVal => setFilterState({...filterState, [name]: +newVal})}
+          />}
         </>
       ))}
       <Button my={4} onClick={getData}>Reroll</Button>
@@ -136,7 +144,7 @@ export default function Home() {
   )
 
   return (
-    <Box p={4}>
+    <Box as="main" p={4}>
       <Heading as="h1" mb={4}size="2xl">Random Team Generator</Heading>
       {controls}
       <Divider my={4} />

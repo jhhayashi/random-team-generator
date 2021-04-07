@@ -6,10 +6,13 @@ export interface User {
 }
 
 export interface Filter {
-  type: "multiselect" | "checkbox" | "date"
+  type: "multiselect" | "checkbox" | "date" | "number"
   name: string // e.g. "manager"
   label?: string // to be shown in the form input label, e.g. "Filter by manager"
-  url?: string
+  url?: string // where to fetch the values for a multiselect filter
+  min?: number
+  max?: number
+  defaultValue?: string[] | number
 }
 
 // ===========================================
