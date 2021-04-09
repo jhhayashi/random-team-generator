@@ -4,10 +4,10 @@
   "description": "App to randomly generate teams",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node --transpile-only server",
+    "start": "node server-dist/server",
     "dev": "nodemon --ignore src/ --ignore .next --ignore dist/ server/index.ts",
-    "build": "next build",
-    "test": "tsc --noEmit && jest",
+    "build": "next build && tsc --project server.tsconfig.json",
+    "test": "tsc --noEmit && tsc --noEmit --project server.tsconfig.json && jest",
     "test:watch": "jest --watch"
   },
   "repository": {

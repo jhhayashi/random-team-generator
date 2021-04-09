@@ -2,6 +2,7 @@ node_modules/
 /tsconfig.tsbuildinfo
 /.next/
 /dist/
+/server-dist/
 
 # output of compiling the server
 /server/**/*.js
