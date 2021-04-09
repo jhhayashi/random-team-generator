@@ -2,3 +2,7 @@ node_modules/
 /tsconfig.tsbuildinfo
 /.next/
 /dist/
+
+# output of compiling the server
+/server/**/*.js
+types.js
