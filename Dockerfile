@@ -17,7 +17,9 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+# run build in production mode, since the cache in .next/ for development was
+# around half of our resulting image size
+RUN NODE_ENV=production npm run build
 
 #################################
 # server
