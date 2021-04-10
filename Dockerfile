@@ -29,6 +29,8 @@ RUN addgroup -g 1001 -S somegroup
 RUN adduser -S someuser -u 1001
 
 COPY package*.json ./
+
+ENV NODE_ENV=production
 RUN npm ci
 
 COPY --from=builder /app/next.config.js /app/next.config.js
@@ -37,8 +39,6 @@ COPY --from=builder /app/dist /app/dist
 COPY --from=builder /app/server-dist /app/server-dist
 
 USER someuser
-
-EXPOSE 3000
-ENV NODE_ENV=production
+EXPOSE 8080
 
 CMD ["npm", "start"]
