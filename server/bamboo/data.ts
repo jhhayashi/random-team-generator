@@ -15,9 +15,10 @@ const {
 const CACHE_EXPIRATION_MS = +CACHE_EXPIRATION_MS_STR
 const ALLOWED_KEYS = ['id', 'displayName', 'preferredName', 'jobTitle', 'department', 'location', 'imgUrl', 'name'] as const
 
-export const ENABLED = !!(BAMBOOHR_KEY && BAMBOOHR_SUBDOMAIN) || NODE_ENV == 'test'
+export const ENABLED = !!(BAMBOOHR_KEY && BAMBOOHR_SUBDOMAIN)
 
-if (!ENABLED) console.log('No BAMBOOHR_KEY and BAMBOOHR_SUBDOMAIN. BambooHR integration turned off')
+if (!ENABLED && NODE_ENV != 'test') console.log('No BAMBOOHR_KEY and BAMBOOHR_SUBDOMAIN. BambooHR integration disabled')
+else console.log('Found BAMBOOHR_KEY and BAMBOOHR_SUBDOMAIN. BambooHR integration enabled.')
 
 type ID = string
 
