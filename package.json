@@ -22,6 +22,7 @@
   "homepage": "https://github.com/jhhayashi/random-team-generator#readme",
   "dependencies": {
     "@chakra-ui/react": "^1.4.1",
+    "@slack/web-api": "^6.1.0",
     "@types/node-fetch": "^2.5.8",
     "base-64": "^1.0.0",
     "date-fns": "^2.19.0",
