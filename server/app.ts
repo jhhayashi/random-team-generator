@@ -1,11 +1,13 @@
 import Express, {NextFunction, Request, Response} from 'express'
 
 import bambooRoutes from './bamboo/routes'
+import slackRoutes from './slack/routes'
 import {AppError} from './errors'
 
 const app = Express()
 
 app.use(bambooRoutes)
+app.use(slackRoutes)
 
 app.use((err: Error | AppError, _req: Request, res: Response, _next: NextFunction) => {
   const statusCode = 'statusCode' in err  && err.statusCode ? err.statusCode : 500

@@ -10,6 +10,7 @@ const {
 } = process.env
 
 const CACHE_EXPIRATION_MS = +SLACK_CACHE_EXPIRATION_MS_STR
+const CACHED_CHANNEL_KEYS = ['id', 'name', 'num_members'] as const
 
 export const ENABLED = !!SLACK_KEY
 
@@ -23,7 +24,9 @@ type ID = string
 type SlackUser = any
 
 interface Channel {
+  id: ID
   name: string
+  num_members: number
 }
 
 interface ConversationsListResult extends WebAPICallResult {
@@ -33,10 +36,9 @@ interface ConversationsListResult extends WebAPICallResult {
 export interface Cache {
   date?: number // Date.now()
   data?: {
-    ids?: {[id: string]: SlackUser}
-    users?: SlackUser[]
-    byChannel?: {[channel: string]: ID[]}
-    channels: Channel[]
+    usersById?: {[id: string]: SlackUser}
+    channelsById?: {[id: string]: Channel}
+    channelsByName?: {[name: string]: ID}
   }
 }
 
@@ -66,10 +68,25 @@ function getAllChannels(): Promise<ConversationsListResult['channels']> {
   return getAllPaginatedData(
     // TODO: figure out a better way to type this without having to typecast, even though
     // typecasting is the official recommendation: https://slack.dev/node-slack-sdk/typescript
-    cursor => webClient.conversations.list({cursor, limit: 1, exclude_archived: true}) as Promise<ConversationsListResult>,
+    cursor => webClient.conversations.list({cursor, limit: 200, exclude_archived: true}) as Promise<ConversationsListResult>,
     (res: ConversationsListResult) => _.get(res, 'channels'),
     [],
   )
+}
+
+function getChannelsByKey(channels: Channel[], key: string) {
+  return _.mapValues(_.groupBy(channels, key) as Record<string, [typeof channels[number]]>, arr => arr[0])
+}
+
+function getNormalizedCache(channels: Channel[]): Cache {
+  const slimmedChannels = channels.map(channel => _.pick(channel, CACHED_CHANNEL_KEYS))
+  return {
+    date: Date.now(),
+    data: {
+      channelsById: getChannelsByKey(slimmedChannels, 'id'),
+      channelsByName: _.mapValues(getChannelsByKey(slimmedChannels, 'name'), channel => channel.id),
+    },
+  }
 }
 
 export function getSlackData(): Promise<Cache['data']> {
@@ -79,12 +96,12 @@ export function getSlackData(): Promise<Cache['data']> {
     return Promise.reject(err)
   }
   if (cache.date && cache.date + CACHE_EXPIRATION_MS > Date.now()) return Promise.resolve(cache.data)
+  const startTime = Date.now()
   return getAllChannels()
     .then(channels => {
-      cache.date = Date.now()
-      cache.data = {channels}
+      Object.assign(cache, getNormalizedCache(channels))
 
-      console.log(`[${new Date().toLocaleString('en-US')}] Slack cache warmed with ${channels.length} channels`)
+      console.log(`[${new Date().toLocaleString('en-US')}] Slack cache warmed with ${channels.length} channels in ${Date.now() - startTime}ms`)
       return cache.data
     })
 }
