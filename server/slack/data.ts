@@ -66,7 +66,7 @@ export interface Cache {
     date: number
     members: ID[]
   }>
-  users?: Record<string, SlackUser & {date: number}>
+  users?: Record<string, {date: number, profile: SlackUser}>
 }
 
 export const cache: Cache = {channelsMembers: {}}
@@ -77,6 +77,10 @@ export function clearCache() {
   delete cache.users
 }
 
+/*
+ * Recursively fetches all paginated data.
+ * Doesn't cache results, since we'll store a normalized version of the data downstream
+ */
 function getAllPaginatedData<GenericData, SlackAPIResponse extends WebAPICallResult>(
   fn: (cursor?: string) => Promise<SlackAPIResponse>,
   getter: (response: SlackAPIResponse) => GenericData[],
@@ -115,8 +119,9 @@ function getChannelsByKey(channels: Channel[], key: string) {
 }
 
 function getUserById(userId: string): Promise<SlackUser> {
-  const maybeCachedUser = cache?.users?.[userId]
-  if (maybeCachedUser) return Promise.resolve(maybeCachedUser)
+  const cachedUser = cache?.users?.[userId]
+  const cachedDate = cachedUser && cachedUser.date
+  if (cachedUser && cachedDate && cachedDate + CACHE_EXPIRATION_MS > Date.now()) return Promise.resolve(cachedUser.profile)
 
   const apiPromise = webClient.users.profile.get({user: userId}) as Promise<UsersProfileGetResult>
   return apiPromise.then((response: UsersProfileGetResult) => {
@@ -126,7 +131,7 @@ function getUserById(userId: string): Promise<SlackUser> {
       name: profile.real_name_normalized || profile.display_name_normalized || profile.real_name || profile.display_name || '',
       imgUrl: profile.image_512,
     }
-    _.set(cache, `users.${userId}`, {date: Date.now(), ...user})
+    _.set(cache, `users.${userId}`, {date: Date.now(), profile: user})
     return user
   })
 }
@@ -155,8 +160,15 @@ export function getSlackChannels(): Promise<Cache['channelsList']> {
 
 export function getSlackMembersByChannelId(channelId: string): Promise<SlackUser[]> {
   if (!ENABLED) return Promise.reject(new IntegrationDisabledError('Slack integration is disabled'))
+
+  const cachedMembers = cache?.channelsMembers?.[channelId]
+  const cachedDate = cachedMembers && cachedMembers.date
+
+  const memberIdsPromise = (cachedMembers && cachedDate && cachedDate + CACHE_EXPIRATION_MS > Date.now())
+    ? Promise.resolve(cachedMembers.members)
+    : getAllMembersInChannel(channelId)
   
-  return getAllMembersInChannel(channelId)
+  return memberIdsPromise
     .then(userIds => Promise.all(userIds.map(userId => getUserById(userId))))
     .then(users => users)
 }
