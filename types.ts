@@ -16,7 +16,7 @@ export interface Filter {
 }
 
 // ===========================================
-// API Routes
+// Bamboo API Routes
 // ===========================================
 
 export interface APIv1Member extends User {}
@@ -30,3 +30,13 @@ export type APIv1Teams = {name: string}[]
 export type APIv1Managers = Pick<User, 'name' | 'imgUrl'>[]
 
 export type APIv1Filters = Filter[]
+
+// ===========================================
+// Slack API Routes
+// ===========================================
+
+export type APISlackChannels = {
+  id: string
+  name: string
+  memberCount: number
+}[]

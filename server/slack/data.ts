@@ -11,7 +11,6 @@ const {
 } = process.env
 
 const CACHE_EXPIRATION_MS = +SLACK_CACHE_EXPIRATION_MS_STR
-const CACHED_CHANNEL_KEYS = ['id', 'name', 'num_members'] as const
 
 export const ENABLED = !!SLACK_KEY
 
@@ -32,14 +31,18 @@ interface SlackUser extends User {
   imgUrl: string
 }
 
-interface Channel {
+interface APIChannel {
   id: ID
   name: string
   num_members: number
 }
 
+interface Channel extends Omit<APIChannel, 'num_members'> {
+  memberCount: APIChannel['num_members']
+}
+
 interface ConversationsListResult extends WebAPICallResult {
-  channels: Channel[]
+  channels: APIChannel[]
 }
 
 interface ConversationsMembersResult extends WebAPICallResult {
@@ -144,7 +147,7 @@ export function getSlackChannels(): Promise<Cache['channelsList']> {
   const startTime = Date.now()
   return getAllChannels()
     .then(channels => {
-      const slimmedChannels = channels.map(channel => _.pick(channel, CACHED_CHANNEL_KEYS))
+      const slimmedChannels: Channel[]  = channels.map(({id, name, num_members}) => ({id, name, memberCount: num_members}))
       const channelsList = {
         date: startTime,
         channelsById: getChannelsByKey(slimmedChannels, 'id'),
