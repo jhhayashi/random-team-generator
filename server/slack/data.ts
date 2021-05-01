@@ -84,10 +84,10 @@ export function clearCache() {
  * Recursively fetches all paginated data.
  * Doesn't cache results, since we'll store a normalized version of the data downstream
  */
-function getAllPaginatedData<GenericData, SlackAPIResponse extends WebAPICallResult>(
+function fetchAllPaginatedData<GenericData, SlackAPIResponse extends WebAPICallResult>(
   fn: (cursor?: string) => Promise<SlackAPIResponse>,
   getter: (response: SlackAPIResponse) => GenericData[],
-  partialData: GenericData[],
+  partialData: GenericData[] = [],
   cursor?: string
 ): Promise<GenericData[]> {
   return fn(cursor).then((res: SlackAPIResponse) => {
@@ -95,29 +95,27 @@ function getAllPaginatedData<GenericData, SlackAPIResponse extends WebAPICallRes
     const updatedCursor = res?.response_metadata?.next_cursor
 
     if (!updatedCursor) return updatedPartialData
-    return getAllPaginatedData(fn, getter, updatedPartialData, updatedCursor)
+    return fetchAllPaginatedData(fn, getter, updatedPartialData, updatedCursor)
   })
 }
 
-function getAllChannels(): Promise<ConversationsListResult['channels']> {
-  return getAllPaginatedData(
+function fetchAllChannels(): Promise<ConversationsListResult['channels']> {
+  return fetchAllPaginatedData(
     // TODO: figure out a better way to type this without having to typecast, even though
     // typecasting is the official recommendation: https://slack.dev/node-slack-sdk/typescript
     cursor => webClient.conversations.list({cursor, limit: 200, exclude_archived: true}) as Promise<ConversationsListResult>,
     (res: ConversationsListResult) => _.get(res, 'channels'),
-    [],
   )
 }
 
-function getAllMembersInChannel(channelId: string): Promise<ConversationsMembersResult['members']> {
-  return getAllPaginatedData(
+function fetchAllMembersInChannel(channelId: string): Promise<ConversationsMembersResult['members']> {
+  return fetchAllPaginatedData(
     cursor => webClient.conversations.members({channel: channelId, cursor, limit: 200}) as Promise<ConversationsMembersResult>,
     (res: ConversationsMembersResult) => _.get(res, 'members'),
-    [],
   )
 }
 
-function getChannelsByKey(channels: Channel[], key: string) {
+function groupChannelsByKey(channels: Channel[], key: string) {
   return _.mapValues(_.groupBy(channels, key) as Record<string, [typeof channels[number]]>, arr => arr[0])
 }
 
@@ -145,13 +143,13 @@ export function getSlackChannels(): Promise<Cache['channelsList']> {
   const cacheDate = cache?.channelsList?.date
   if (cacheDate && cacheDate + CACHE_EXPIRATION_MS > Date.now()) return Promise.resolve(cache.channelsList)
   const startTime = Date.now()
-  return getAllChannels()
+  return fetchAllChannels()
     .then(channels => {
       const slimmedChannels: Channel[]  = channels.map(({id, name, num_members}) => ({id, name, memberCount: num_members}))
       const channelsList = {
         date: startTime,
-        channelsById: getChannelsByKey(slimmedChannels, 'id'),
-        channelsByName: _.mapValues(getChannelsByKey(slimmedChannels, 'name'), channel => channel.id),
+        channelsById: groupChannelsByKey(slimmedChannels, 'id'),
+        channelsByName: _.mapValues(groupChannelsByKey(slimmedChannels, 'name'), channel => channel.id),
       }
 
       cache.channelsList = channelsList
@@ -169,7 +167,7 @@ export function getSlackMembersByChannelId(channelId: string): Promise<SlackUser
 
   const memberIdsPromise = (cachedMembers && cachedDate && cachedDate + CACHE_EXPIRATION_MS > Date.now())
     ? Promise.resolve(cachedMembers.members)
-    : getAllMembersInChannel(channelId)
+    : fetchAllMembersInChannel(channelId)
   
   return memberIdsPromise
     .then(userIds => Promise.all(userIds.map(userId => getUserById(userId))))
