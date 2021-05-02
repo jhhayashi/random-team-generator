@@ -40,8 +40,7 @@ function renderUserGroup(users: UserType[]) {
   )
 }
 
-function renderAllGroups(users: UserType[][] | null) {
-  if (!users) return <p>Loading...</p>
+function renderAllGroups(users: UserType[][]) {
   return users.map((group, i) => (
     <div>
       <Heading as="h3" mb={4}>Group {i + 1}</Heading>
@@ -75,6 +74,7 @@ const staticFilters: Filter[] = [
 
 export default function Home() {
   const [randomUsers, setRandomUsers] = useState<UserType[][] | null>(null)
+  const [isLoadingRandomUsers, setIsLoadingRandomUsers] = useState(false)
   const [availableFilters, setAvailableFilters] = useState<Filter[]>([])
   const [filterState, setFilterState] = useState<{[filterName: string]: any}>({})
   const [integrations, setIntegrations] = useState<Integration[]>([])
@@ -91,10 +91,17 @@ export default function Home() {
       (val: any) => val == null || (_.isArray(val) && !val.length) || (_.isNumber(val) && (val < 1))
     )
     const q = queryString.stringify(queryStringArgs, {arrayFormat: 'bracket'})
+    setIsLoadingRandomUsers(true)
+    setRandomUsers(null)
     fetch(`${activeIntegration.apiPrefix}/groups?${q}`)
       .then(res => res.json())
       .then((randomUsers: APIGroups) => {
+        setIsLoadingRandomUsers(false)
         setRandomUsers(randomUsers.groups)
+      })
+      .catch(() => {
+        setIsLoadingRandomUsers(false)
+        setRandomUsers(null)
       })
   }
 
@@ -179,7 +186,9 @@ export default function Home() {
       {controls}
       <Divider my={4} />
       <Wrap justify="center" direction="column" spacing={8}>
-        {renderAllGroups(randomUsers)}
+        {!activeIntegration && <Heading as="h3" size="lg">Select an Integration to begin</Heading>}
+        {isLoadingRandomUsers && <p>Loading...</p>}
+        {randomUsers && renderAllGroups(randomUsers)}
       </Wrap>
     </Box>
   )
