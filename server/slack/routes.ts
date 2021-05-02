@@ -1,18 +1,17 @@
 import Express, {NextFunction, Request, Response} from 'express'
 import * as _ from 'lodash'
 
-import {getSlackChannels, getSlackMembersByChannelId} from './data'
+import {getSlackChannels, getSlackMembersByChannelId, warmCache} from './data'
 
 import {createResponseFunction} from '../utils'
-import {APISlackChannels} from '../../types'
+import {APIFilters, APISlackChannels, Filter, Integration} from '../../types'
 
 const PROD = process.env['NODE_ENV'] == 'production'
 const PREFIX = '/api/slack'
 
-if (PROD) {
-  // warm the cache
-  getSlackChannels()
-}
+export const metadata: Integration = {name: 'Slack', apiPrefix: PREFIX}
+
+if (PROD) warmCache()
 
 const router = Express.Router()
 
@@ -36,5 +35,13 @@ if (!PROD) {
       .catch(err => next(err))
   })
 }
+
+const sendAPIFilters = createResponseFunction<APIFilters>()
+router.get(`${PREFIX}/filters`, (_req: Request, res: Response) => {
+  const filters: Filter[] = [
+    {type: "multiselect", name: 'channels', url: channelsUrl},
+  ]
+  sendAPIFilters(res, filters)
+})
 
 export default router

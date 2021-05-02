@@ -89,6 +89,11 @@ export interface Cache {
 
 export const cache: Cache = {channelsMembers: {}}
 
+export function warmCache() {
+  getSlackChannels()
+  getSlackUsers()
+}
+
 export function clearCache() {
   delete cache.channelsList
   cache.channelsMembers = {}
@@ -168,7 +173,7 @@ function getUserById(userId: string): Promise<SlackUser> {
   })
 }
 
-export function getAllUsers() {
+export function getSlackUsers() {
   if (!ENABLED) return Promise.reject(new IntegrationDisabledError('Slack integration is disabled'))
 
   const cacheDate = cache?.users?.date
