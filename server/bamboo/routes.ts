@@ -6,10 +6,12 @@ import * as _ from 'lodash'
 import {Cache, getBambooData} from './data'
 
 import {createResponseFunction, respondWith400IfErrors, getRandomTeamsFromMembers} from '../utils'
-import {User, Filter, APIMember, APIFilters, APIGroups, APITeams, APIManagers} from '../../types'
+import {Integration, User, Filter, APIMember, APIFilters, APIGroups, APITeams, APIManagers} from '../../types'
 
 const PROD = process.env['NODE_ENV'] == 'production'
 const PREFIX = '/api/bamboo'
+
+export const metadata: Integration = {name: 'BambooHR', apiPrefix: PREFIX}
 
 if (PROD) {
   // warm the cache

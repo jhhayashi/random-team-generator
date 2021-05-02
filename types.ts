@@ -15,6 +15,11 @@ export interface Filter {
   defaultValue?: string[] | number
 }
 
+export interface Integration {
+  name: string
+  apiPrefix: string
+}
+
 // ===========================================
 // Bamboo API Routes
 // ===========================================

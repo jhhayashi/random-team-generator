@@ -9,6 +9,7 @@ import {
   Divider,
   Heading,
   Image,
+  Select,
   Wrap,
 } from '@chakra-ui/react'
 
@@ -16,7 +17,7 @@ import CheckboxFilter from '../components/CheckboxFilter'
 import DateFilter from '../components/DateFilter'
 import NumberFilter from '../components/NumberFilter'
 import MultiselectFilter from '../components/MultiselectFilter'
-import {APIFilters, APIGroups, Filter, User as UserType} from '../../types'
+import {APIFilters, APIGroups, Filter, Integration, User as UserType} from '../../types'
 
 function User(props: UserType) {
   const {name, imgUrl} = props
@@ -74,27 +75,53 @@ const staticFilters: Filter[] = [
 
 export default function Home() {
   const [randomUsers, setRandomUsers] = useState<UserType[][] | null>(null)
-  const [availableFilters, setAvailableFilters] = useState<Filter[]>(staticFilters)
+  const [availableFilters, setAvailableFilters] = useState<Filter[]>([])
   const [filterState, setFilterState] = useState<{[filterName: string]: any}>({})
+  const [integrations, setIntegrations] = useState<Integration[]>([])
+  const [activeIntegration, setActiveIntegration] = useState<Integration | null>(null)
 
-  function getData(){
+  function fetchRandomGroups(){
+    if (!activeIntegration) {
+      setRandomUsers(null)
+      return
+    }
     const dynamicFilters = _.mapValues(filterState, formatFilterValues)
     const queryStringArgs = _.omitBy(
       dynamicFilters,
       (val: any) => val == null || (_.isArray(val) && !val.length) || (_.isNumber(val) && (val < 1))
     )
     const q = queryString.stringify(queryStringArgs, {arrayFormat: 'bracket'})
-    fetch(`/api/bamboo/groups?${q}`)
+    fetch(`${activeIntegration.apiPrefix}/groups?${q}`)
       .then(res => res.json())
       .then((randomUsers: APIGroups) => {
         setRandomUsers(randomUsers.groups)
       })
   }
 
-  useEffect(getData, [filterState])
+  useEffect(fetchRandomGroups, [filterState])
 
+  // integrations
   useEffect(() => {
-    fetch('/api/bamboo/filters')
+    fetch('/api/integrations')
+      .then(res => res.json())
+      .then((integrationList: Integration[]) => {
+        setIntegrations(integrationList)
+      })
+  }, [])
+  function handleIntegrationChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const integrationName = e.target.value
+    const newActiveIntegration = integrations.filter(({name}) => name == integrationName)[0]
+    setActiveIntegration(newActiveIntegration || null)
+  }
+
+  // dynamic filters
+  useEffect(() => {
+    if (!activeIntegration) {
+      setAvailableFilters([])
+      setFilterState({})
+      return
+    }
+    fetch(`${activeIntegration.apiPrefix}/filters`)
       .then(res => res.json())
       .then((dynamicFilters: APIFilters) => {
         const filters = [...staticFilters, ...dynamicFilters]
@@ -105,10 +132,13 @@ export default function Home() {
           )
         )
       })
-  }, [])
+  }, [activeIntegration])
 
   const controls = (
     <Box>
+      <Select placeholder="Select Integration" size="lg" onChange={handleIntegrationChange}>
+        {integrations.map(integration => <option value={integration.name}>{integration.name}</option>)}
+      </Select>
       {availableFilters.map(({name, label, type, url}) => (
         <>
           {type == 'multiselect' && <MultiselectFilter
@@ -139,7 +169,7 @@ export default function Home() {
           />}
         </>
       ))}
-      <Button my={4} onClick={getData}>Reroll</Button>
+      <Button my={4} onClick={fetchRandomGroups}>Reroll</Button>
     </Box>
   )
 
