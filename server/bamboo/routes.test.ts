@@ -5,7 +5,7 @@ import Express from 'express'
 import request from 'supertest'
 import * as _ from 'lodash'
 
-import {APIv1Groups} from '../../types'
+import {APIGroups} from '../../types'
 
 import routes from './routes'
 
@@ -44,10 +44,10 @@ fetch
   // @ts-ignore
   .mockReturnValueOnce(Promise.resolve(new Response(JSON.stringify(oooBlocks))))
 
-describe('Test the /api/bamboo/v1/member endpoint', () => {
+describe('Test the /api/bamboo/member endpoint', () => {
   test('Returns a random team member', () => {
     return request(app)
-      .get('/api/bamboo/v1/member')
+      .get('/api/bamboo/member')
       .expect(200)
       .then(res => {
         const {body} = res
@@ -58,17 +58,17 @@ describe('Test the /api/bamboo/v1/member endpoint', () => {
   })
 })
 
-describe('Test the /api/bamboo/v1/groups endpoint', () => {
-  test('Returns 400 when no query', () => request(app).get('/api/bamboo/v1/groups').expect(400))
-  test('Returns 400 on invalid groupCount', () => request(app).get('/api/bamboo/v1/groups?groupCount=foo').expect(400))
-  test('Returns 400 on invalid maxGroupSize', () => request(app).get('/api/bamboo/v1/groups?maxGroupSize=-1').expect(400))
-  test('Returns 400 on invalid managers', () => request(app).get('/api/bamboo/v1/groups?groupCount=1&managers=foo').expect(400))
-  test('Returns 400 on invalid teams', () => request(app).get('/api/bamboo/v1/groups?groupCount=1&teams=1').expect(400))
-  test('Returns 400 on invalid includeManagers', () => request(app).get('/api/bamboo/v1/groups?groupCount=1&includeManagers=').expect(400))
+describe('Test the /api/bamboo/groups endpoint', () => {
+  test('Returns 400 when no query', () => request(app).get('/api/bamboo/groups').expect(400))
+  test('Returns 400 on invalid groupCount', () => request(app).get('/api/bamboo/groups?groupCount=foo').expect(400))
+  test('Returns 400 on invalid maxGroupSize', () => request(app).get('/api/bamboo/groups?maxGroupSize=-1').expect(400))
+  test('Returns 400 on invalid managers', () => request(app).get('/api/bamboo/groups?groupCount=1&managers=foo').expect(400))
+  test('Returns 400 on invalid teams', () => request(app).get('/api/bamboo/groups?groupCount=1&teams=1').expect(400))
+  test('Returns 400 on invalid includeManagers', () => request(app).get('/api/bamboo/groups?groupCount=1&includeManagers=').expect(400))
 
   test('Returns a group with all users when groupCount=1', () => {
     return request(app)
-      .get('/api/bamboo/v1/groups?groupCount=1')
+      .get('/api/bamboo/groups?groupCount=1')
       .expect(200)
       .then(res => {
         const {body} = res
@@ -85,7 +85,7 @@ describe('Test the /api/bamboo/v1/groups endpoint', () => {
 
   test('Returns all users in single-member groups when maxGroupSize=1', () => {
     return request(app)
-      .get('/api/bamboo/v1/groups?maxGroupSize=1')
+      .get('/api/bamboo/groups?maxGroupSize=1')
       .expect(200)
       .then(res => {
         const {body} = res
@@ -103,10 +103,10 @@ describe('Test the /api/bamboo/v1/groups endpoint', () => {
 
   test('Returns as expected when groupCount and maxGroupSize as both passed', () => {
     return request(app)
-      .get('/api/bamboo/v1/groups?groupCount=2&maxGroupSize=2')
+      .get('/api/bamboo/groups?groupCount=2&maxGroupSize=2')
       .expect(200)
       .then(res => {
-        const body: APIv1Groups = res.body
+        const body: APIGroups = res.body
         const {groups} = body
         expect(groups[0]).toHaveLength(2)
         expect(groups[1]).toHaveLength(Math.min(mockUsers.length - 2, 2))
@@ -115,10 +115,10 @@ describe('Test the /api/bamboo/v1/groups endpoint', () => {
 
   test('Filters by manager', () => {
       return request(app)
-        .get('/api/bamboo/v1/groups?groupCount=1&managers[]=Two')
+        .get('/api/bamboo/groups?groupCount=1&managers[]=Two')
         .expect(200)
         .then(res => {
-          const body: APIv1Groups = res.body
+          const body: APIGroups = res.body
           const {groups} = body
           expect(groups[0]).toHaveLength(2)
           expect(groups[0]?.map(users => users.id).sort()).toEqual(["4", "5"])
@@ -127,10 +127,10 @@ describe('Test the /api/bamboo/v1/groups endpoint', () => {
 
   test('Filters by team', () => {
       return request(app)
-        .get('/api/bamboo/v1/groups?groupCount=1&teams[]=A')
+        .get('/api/bamboo/groups?groupCount=1&teams[]=A')
         .expect(200)
         .then(res => {
-          const body: APIv1Groups = res.body
+          const body: APIGroups = res.body
           const {groups} = body
           expect(groups[0]).toHaveLength(2)
           expect(groups[0]?.map(users => users.id).sort()).toEqual(["2", "3"])
@@ -139,10 +139,10 @@ describe('Test the /api/bamboo/v1/groups endpoint', () => {
 
   test('Filters by manager and team', () => {
       return request(app)
-        .get('/api/bamboo/v1/groups?groupCount=1&teams[]=B&managers[]=Two')
+        .get('/api/bamboo/groups?groupCount=1&teams[]=B&managers[]=Two')
         .expect(200)
         .then(res => {
-          const body: APIv1Groups = res.body
+          const body: APIGroups = res.body
           const {groups} = body
           expect(groups[0]).toHaveLength(1)
           expect(groups[0]?.[0]?.id).toBe("5")
@@ -151,10 +151,10 @@ describe('Test the /api/bamboo/v1/groups endpoint', () => {
 
   test('Includes manager when specified', () => {
       return request(app)
-        .get('/api/bamboo/v1/groups?groupCount=1&managers[]=Two&includeManagers=true')
+        .get('/api/bamboo/groups?groupCount=1&managers[]=Two&includeManagers=true')
         .expect(200)
         .then(res => {
-          const body: APIv1Groups = res.body
+          const body: APIGroups = res.body
           const {groups} = body
           expect(groups[0]).toHaveLength(3)
           expect(groups[0]?.map(users => users.id).sort()).toEqual(["2", "4", "5"])
@@ -163,10 +163,10 @@ describe('Test the /api/bamboo/v1/groups endpoint', () => {
 
   test('Filters out people who are OOO', () => {
       return request(app)
-        .get('/api/bamboo/v1/groups?groupCount=1&oooDate=2000-02-01')
+        .get('/api/bamboo/groups?groupCount=1&oooDate=2000-02-01')
         .expect(200)
         .then(res => {
-          const body: APIv1Groups = res.body
+          const body: APIGroups = res.body
           const {groups} = body
           expect(groups[0]).toHaveLength(mockUsers.length - 2)
           const userIds = new Set(groups[0]?.map(({id}) => id))

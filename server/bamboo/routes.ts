@@ -6,7 +6,7 @@ import * as _ from 'lodash'
 import {Cache, getBambooData} from './data'
 
 import {createResponseFunction, respondWith400IfErrors, getRandomTeamsFromMembers} from '../utils'
-import {User, Filter, APIv1Member, APIv1Filters, APIv1Groups, APIv1Teams, APIv1Managers} from '../../types'
+import {User, Filter, APIMember, APIFilters, APIGroups, APITeams, APIManagers} from '../../types'
 
 const PROD = process.env['NODE_ENV'] == 'production'
 const PREFIX = '/api/bamboo'
@@ -44,20 +44,20 @@ function filterByOoo(cache: Required<Cache>['data'], users: User[], date?: strin
   return users.filter(user => !oooUsers.has(user.id))
 }
 
-const sendAPIv1Member = createResponseFunction<APIv1Member | undefined>()
-router.get(`${PREFIX}/v1/member`, (_req: Request, res: Response, next: NextFunction) => {
+const sendAPIMember = createResponseFunction<APIMember | undefined>()
+router.get(`${PREFIX}/member`, (_req: Request, res: Response, next: NextFunction) => {
   getBambooData()
     .then((data)=> {
       if (!data?.employees) throw new Error('there are no employees')
       const randomMember = getRandomTeamsFromMembers(data?.employees, {teamCount: 1, maxTeamSize: 1})[0]?.[0]
-      sendAPIv1Member(res, randomMember)
+      sendAPIMember(res, randomMember)
     })
     .catch(err => next(err))
 })
 
-const sendAPIv1Groups = createResponseFunction<APIv1Groups>()
+const sendAPIGroups = createResponseFunction<APIGroups>()
 router.get(
-  `${PREFIX}/v1/groups`,
+  `${PREFIX}/groups`,
   check(['groupCount', 'maxGroupSize']).optional().isInt({min: 1}).toInt(),
   check(['managers', 'teams']).optional().isArray({min: 1}).toArray(),
   check('includeManagers').optional().isBoolean().toBoolean(),
@@ -77,40 +77,40 @@ router.get(
           candidateMembers,
           {teamCount: groupCount, maxTeamSize: maxGroupSize}
         )
-        sendAPIv1Groups(res, {groups})
+        sendAPIGroups(res, {groups})
       })
       .catch(err => next(err))
   }
 )
 
-const sendAPIv1Teams = createResponseFunction<APIv1Teams>()
-const teamsUrl = `${PREFIX}/v1/teams`
+const sendAPITeams = createResponseFunction<APITeams>()
+const teamsUrl = `${PREFIX}/teams`
 router.get(teamsUrl, (_req: Request, res: Response, next: NextFunction) => {
   getBambooData()
-    .then(data => sendAPIv1Teams(res, _.map(data?.teamNames, name => ({name}))))
+    .then(data => sendAPITeams(res, _.map(data?.teamNames, name => ({name}))))
     .catch(err => next(err))
 })
 
-const sendAPIv1Managers = createResponseFunction<APIv1Managers>()
-const managersUrl = `${PREFIX}/v1/managers`
+const sendAPIManagers = createResponseFunction<APIManagers>()
+const managersUrl = `${PREFIX}/managers`
 router.get(managersUrl, (_req: Request, res: Response, next: NextFunction) => {
   getBambooData()
     .then(data => {
-      const managers = data?.managerIds.map(id => _.pick(data.ids[id], ['name', 'imgUrl'])).filter((m): m is APIv1Managers[number] => !_.isEmpty(m)) || []
-      return sendAPIv1Managers(res, managers)
+      const managers = data?.managerIds.map(id => _.pick(data.ids[id], ['name', 'imgUrl'])).filter((m): m is APIManagers[number] => !_.isEmpty(m)) || []
+      return sendAPIManagers(res, managers)
     })
     .catch(err => next(err))
 })
 
-const sendAPIv1Filters = createResponseFunction<APIv1Filters>()
-router.get(`${PREFIX}/v1/filters`, (_req: Request, res: Response) => {
+const sendAPIFilters = createResponseFunction<APIFilters>()
+router.get(`${PREFIX}/filters`, (_req: Request, res: Response) => {
   const filters: Filter[] = [
     {type: "multiselect", name: 'managers', url: managersUrl},
     {type: "checkbox", name: 'includeManagers', label: 'Include managers in the teams'},
     {type: "multiselect", name: 'teams', url: teamsUrl},
     {type: "date", name: "oooDate", label: "Exclude people who are out of office on a date"},
   ]
-  sendAPIv1Filters(res, filters)
+  sendAPIFilters(res, filters)
 })
 
 export default router

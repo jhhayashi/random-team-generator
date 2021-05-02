@@ -19,17 +19,17 @@ export interface Filter {
 // Bamboo API Routes
 // ===========================================
 
-export interface APIv1Member extends User {}
+export interface APIMember extends User {}
 
-export interface APIv1Groups {
+export interface APIGroups {
   groups: User[][]
 }
 
-export type APIv1Teams = {name: string}[]
+export type APITeams = {name: string}[]
 
-export type APIv1Managers = Pick<User, 'name' | 'imgUrl'>[]
+export type APIManagers = Pick<User, 'name' | 'imgUrl'>[]
 
-export type APIv1Filters = Filter[]
+export type APIFilters = Filter[]
 
 // ===========================================
 // Slack API Routes

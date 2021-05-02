@@ -16,7 +16,7 @@ import CheckboxFilter from '../components/CheckboxFilter'
 import DateFilter from '../components/DateFilter'
 import NumberFilter from '../components/NumberFilter'
 import MultiselectFilter from '../components/MultiselectFilter'
-import {APIv1Filters, APIv1Groups, Filter, User as UserType} from '../../types'
+import {APIFilters, APIGroups, Filter, User as UserType} from '../../types'
 
 function User(props: UserType) {
   const {name, imgUrl} = props
@@ -84,9 +84,9 @@ export default function Home() {
       (val: any) => val == null || (_.isArray(val) && !val.length) || (_.isNumber(val) && (val < 1))
     )
     const q = queryString.stringify(queryStringArgs, {arrayFormat: 'bracket'})
-    fetch(`/api/bamboo/v1/groups?${q}`)
+    fetch(`/api/bamboo/groups?${q}`)
       .then(res => res.json())
-      .then((randomUsers: APIv1Groups) => {
+      .then((randomUsers: APIGroups) => {
         setRandomUsers(randomUsers.groups)
       })
   }
@@ -94,9 +94,9 @@ export default function Home() {
   useEffect(getData, [filterState])
 
   useEffect(() => {
-    fetch('/api/bamboo/v1/filters')
+    fetch('/api/bamboo/filters')
       .then(res => res.json())
-      .then((dynamicFilters: APIv1Filters) => {
+      .then((dynamicFilters: APIFilters) => {
         const filters = [...staticFilters, ...dynamicFilters]
         setAvailableFilters(filters)
         setFilterState(
