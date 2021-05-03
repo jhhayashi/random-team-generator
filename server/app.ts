@@ -4,7 +4,15 @@ import bambooRoutes, {metadata as bambooMetadata} from './bamboo/routes'
 import slackRoutes, {metadata as slackMetadata}  from './slack/routes'
 import {AppError} from './errors'
 
+const {HEALTHCHECK_ENDPOINT} = process.env
+
 const app = Express()
+
+// create a healthcheck endpoint before the other registered routes so it doesn't shadow anything
+if (HEALTHCHECK_ENDPOINT) {
+  app.get(HEALTHCHECK_ENDPOINT, (_req: Request, res: Response) => res.sendStatus(200))
+  console.log(`Healthcheck endpoint registered at ${HEALTHCHECK_ENDPOINT}`)
+}
 
 app.use(bambooRoutes)
 app.use(slackRoutes)

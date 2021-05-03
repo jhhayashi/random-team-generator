@@ -31,3 +31,15 @@ npm run build
 BAMBOO_KEY=<key> BAMBOOHR_SUBDOMAIN=<subdomain> SLACK_KEY=<key> npm start
 # visit http://localhost:8080
 ```
+
+### Configuration
+
+The following environment variables are used to configure the app:
+
+| Name | Description | Default |
+| ---- | ----------- | ------- |
+| PORT | The port on which the app should listen | 8080 |
+| BAMBOOHR_KEY | A BambooHR key that can be used to make API requests to BambooHR | - |
+| BAMBOOHR_SUBDOMAIN | The BambooHR subdomain to use | - |
+| SLACK_KEY | A Slack key that can be used to make API requests to Slack. Requires the `channels:read`, `users.profile:read`, and `users:read` scopes | - |
+| HEALTHCHECK_ENDPOINT | An API endpoint that will be created to respond to healthchecks | - |
