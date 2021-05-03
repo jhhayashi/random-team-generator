@@ -176,7 +176,7 @@ export default function Home() {
           />}
         </React.Fragment>
       ))}
-      <Button my={4} onClick={fetchRandomGroups}>Reroll</Button>
+      {activeIntegration && <Button my={4} onClick={fetchRandomGroups}>Reroll</Button>}
     </Box>
   )
 
