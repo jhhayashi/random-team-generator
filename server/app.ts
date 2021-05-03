@@ -1,7 +1,11 @@
 import Express, {NextFunction, Request, Response} from 'express'
+import * as _ from 'lodash'
+
+import {Integration} from '../types'
 
 import bambooRoutes, {metadata as bambooMetadata} from './bamboo/routes'
 import slackRoutes, {metadata as slackMetadata}  from './slack/routes'
+import {createResponseFunction} from './utils'
 import {AppError} from './errors'
 
 const {HEALTHCHECK_ENDPOINT} = process.env
@@ -17,8 +21,9 @@ if (HEALTHCHECK_ENDPOINT) {
 app.use(bambooRoutes)
 app.use(slackRoutes)
 
+const sendIntegrations = createResponseFunction<Integration[]>()
 app.get('/api/integrations', (_req: Request, res: Response) => {
-  res.json([bambooMetadata, slackMetadata])
+  sendIntegrations(res, _.compact([bambooMetadata, slackMetadata]))
 })
 
 app.use((err: Error | AppError, _req: Request, res: Response, _next: NextFunction) => {

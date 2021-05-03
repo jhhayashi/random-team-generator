@@ -77,6 +77,10 @@ export interface Cache {
 
 export const cache: Cache = {}
 
+export function warmCache() {
+  getBambooData()
+}
+
 export function clearCache() {
   delete cache.date
   delete cache.data

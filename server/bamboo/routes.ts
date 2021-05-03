@@ -3,7 +3,7 @@ import {check, matchedData} from 'express-validator'
 const {addDays, isMatch, parseISO, isWithinInterval} = require('date-fns')
 import * as _ from 'lodash'
 
-import {Cache, getBambooData} from './data'
+import {Cache, ENABLED, getBambooData, warmCache} from './data'
 
 import {createResponseFunction, respondWith400IfErrors, getRandomTeamsFromMembers} from '../utils'
 import {Integration, User, Filter, APIMember, APIFilters, APIGroups, APITeams, APIManagers} from '../../types'
@@ -11,12 +11,9 @@ import {Integration, User, Filter, APIMember, APIFilters, APIGroups, APITeams, A
 const PROD = process.env['NODE_ENV'] == 'production'
 const PREFIX = '/api/bamboo'
 
-export const metadata: Integration = {name: 'BambooHR', apiPrefix: PREFIX}
+export const metadata: Integration | null = ENABLED ? {name: 'BambooHR', apiPrefix: PREFIX} : null
 
-if (PROD) {
-  // warm the cache
-  getBambooData()
-}
+if (PROD && ENABLED) warmCache()
 
 const router = Express.Router()
 

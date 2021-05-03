@@ -2,7 +2,7 @@ import Express, {NextFunction, Request, Response} from 'express'
 import {check, matchedData} from 'express-validator'
 import * as _ from 'lodash'
 
-import {getSlackChannels, getSlackMembersByChannelIds, getSlackUsers, warmCache} from './data'
+import {ENABLED, getSlackChannels, getSlackMembersByChannelIds, getSlackUsers, warmCache} from './data'
 
 import {createResponseFunction, getRandomTeamsFromMembers, respondWith400IfErrors} from '../utils'
 import {APIFilters, APIGroups, APIMember, APISlackChannels, Filter, Integration} from '../../types'
@@ -10,9 +10,9 @@ import {APIFilters, APIGroups, APIMember, APISlackChannels, Filter, Integration}
 const PROD = process.env['NODE_ENV'] == 'production'
 const PREFIX = '/api/slack'
 
-export const metadata: Integration = {name: 'Slack', apiPrefix: PREFIX}
+export const metadata: Integration | null = ENABLED ? {name: 'Slack', apiPrefix: PREFIX} : null
 
-if (PROD) warmCache()
+if (PROD && ENABLED) warmCache()
 
 const router = Express.Router()
 
