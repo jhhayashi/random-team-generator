@@ -190,8 +190,6 @@ export function getSlackUsers() {
       const profilesWithCacheDate = _.mapValues(profiles, profile => ({date: startTime, profile}))
       cache.users = {date: startTime, profiles: profilesWithCacheDate}
       log(`Slack channels cache warmed with ${users.length} users in ${Date.now() - startTime}ms`)
-      console.log(users)
-      console.log(cache)
       return users
     })
 }
@@ -224,8 +222,14 @@ export function getSlackMembersByChannelId(channelId: string): Promise<SlackUser
   const cachedMembers = cache?.channelsMembers?.[channelId]
   const cachedDate = cachedMembers && cachedMembers.date
 
-  const usersPromise = (cachedDate && cachedDate + CACHE_EXPIRATION_MS > Date.now())
+  const usersPromise = (cachedMembers && cachedDate && cachedDate + CACHE_EXPIRATION_MS > Date.now())
     ? Promise.resolve(cachedMembers.members)
     : fetchAllMembersInChannel(channelId)
   return getUsersById(usersPromise)
+}
+
+export function getSlackMembersByChannelIds(channelIds: string[]): Promise<SlackUser[]> {
+  return Promise.all(channelIds.map(cId => getSlackMembersByChannelId(cId)))
+    // dedupe any members that are in multiple channels
+    .then(withDupes => _.uniqBy(_.flatten(withDupes), u => u.id))
 }
