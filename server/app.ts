@@ -14,8 +14,14 @@ app.get('/api/integrations', (_req: Request, res: Response) => {
 })
 
 app.use((err: Error | AppError, _req: Request, res: Response, _next: NextFunction) => {
-  const statusCode = 'statusCode' in err  && err.statusCode ? err.statusCode : 500
-  if (err) return res.status(statusCode).send(err.message || 'Internal Server Error')
+  // app error and we can be transparent about the message
+  if ('statusCode' in err && err.statusCode) {
+    return res.status(err.statusCode).send(err.message || 'Internal Server Error')
+  }
+
+  // unexpected error which should be logged
+  console.error(err)
+  return res.status(500).send('Internal Server Error')
 })
 
 export default app
