@@ -21,7 +21,8 @@ const channelsUrl = `${PREFIX}/channels`
 router.get(channelsUrl, (_req: Request, res: Response, next: NextFunction) => {
   getSlackChannels()
     .then(data => {
-      sendAPISlackChannels(res, _.values(data?.channelsById))
+      const options = _.map(data?.channelsById, ({id, name, memberCount}) => ({value: id, name, memberCount}))
+      sendAPISlackChannels(res, options)
     })
     .catch(err => next(err))
 })

@@ -10,7 +10,7 @@ import {
 } from '@chakra-ui/react'
 import { CUIAutoComplete, Item as CUIDropdownItem } from 'chakra-ui-autocomplete'
 
-import {Filter} from '../../types'
+import {Filter, MultiselectFilterOption} from '../../types'
 
 interface DropdownItem extends CUIDropdownItem {
   value: string
@@ -25,11 +25,6 @@ function renderDropdownItem(item: DropdownItem) {
       <Text>{item.label}</Text>
     </Flex>
   )
-}
-
-export interface MultiselectFilterOption {
-  name: string
-  imgUrl?: string
 }
 
 export interface MultiselectFilterProps extends Partial<Omit<Filter, 'type'>>{
@@ -66,7 +61,7 @@ export default function MultiselectFilter(props: MultiselectFilterProps) {
             inputStyleProps={inputStyles}
             label={label || `Filter by ${name}`}
             placeholder={options ? "Start typing to filter" : "Loading..."}
-            items={options?.map(({name, imgUrl})=> ({value: name, label: name, imgUrl}))}
+            items={options?.map(({name, imgUrl, value})=> ({value: value || name, label: name, imgUrl}))}
             selectedItems={value || []}
             onSelectedItemsChange={changes => {
               if (changes.selectedItems) onChange(changes.selectedItems)

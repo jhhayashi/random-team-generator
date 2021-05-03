@@ -5,11 +5,17 @@ export interface User {
   imgUrl: string
 }
 
+export interface MultiselectFilterOption {
+  name: string
+  value?: string // falls back to name if not specified
+  imgUrl?: string
+}
+
 export interface Filter {
   type: "multiselect" | "checkbox" | "date" | "number"
   name: string // e.g. "manager"
   label?: string // to be shown in the form input label, e.g. "Filter by manager"
-  url?: string // where to fetch the values for a multiselect filter
+  url?: string // where to fetch the MultiselectFilterOptions for a multiselect filter
   min?: number
   max?: number
   defaultValue?: string[] | number
@@ -40,8 +46,4 @@ export type APIFilters = Filter[]
 // Slack API Routes
 // ===========================================
 
-export type APISlackChannels = {
-  id: string
-  name: string
-  memberCount: number
-}[]
+export type APISlackChannels = (MultiselectFilterOption & {memberCount: number})[]
