@@ -173,6 +173,11 @@ function getUserById(userId: string): Promise<SlackUser> {
   })
 }
 
+function getUsersById(userIds: string[] | Promise<string[]>): Promise<SlackUser[]> {
+  const userIdsPromise = _.isArray(userIds) ? Promise.resolve(userIds) : userIds
+  return userIdsPromise.then(userIds => Promise.all(userIds.map(userId => getUserById(userId))))
+}
+
 export function getSlackUsers() {
   if (!ENABLED) return Promise.reject(new IntegrationDisabledError('Slack integration is disabled'))
 
@@ -219,11 +224,8 @@ export function getSlackMembersByChannelId(channelId: string): Promise<SlackUser
   const cachedMembers = cache?.channelsMembers?.[channelId]
   const cachedDate = cachedMembers && cachedMembers.date
 
-  const memberIdsPromise = (cachedMembers && cachedDate && cachedDate + CACHE_EXPIRATION_MS > Date.now())
+  const usersPromise = (cachedDate && cachedDate + CACHE_EXPIRATION_MS > Date.now())
     ? Promise.resolve(cachedMembers.members)
     : fetchAllMembersInChannel(channelId)
-  
-  return memberIdsPromise
-    .then(userIds => Promise.all(userIds.map(userId => getUserById(userId))))
-    .then(users => users)
+  return getUsersById(usersPromise)
 }
