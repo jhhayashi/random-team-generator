@@ -23,7 +23,7 @@ function User(props: UserType) {
   const {name, imgUrl} = props
   return (
     <Box maxW="sm" p={4} borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md">
-      <Center><Image src={imgUrl} /></Center>
+      <Center><Image boxSize="175px" src={imgUrl} /></Center>
       <Divider mt={4} />
       <Box p="6" textAlign="left">
         <Heading as="h3" size="lg">{name}</Heading>
@@ -42,7 +42,7 @@ function renderUserGroup(users: UserType[]) {
 
 function renderAllGroups(users: UserType[][]) {
   return users.map((group, i) => (
-    <div>
+    <div key={i}>
       <Heading as="h3" mb={4}>Group {i + 1}</Heading>
       {renderUserGroup(group)}
       <Divider mt={4} />
@@ -144,10 +144,10 @@ export default function Home() {
   const controls = (
     <Box>
       <Select placeholder="Select Integration" size="lg" onChange={handleIntegrationChange}>
-        {integrations.map(integration => <option value={integration.name}>{integration.name}</option>)}
+        {integrations.map(({name})=> <option key={name} value={name}>{name}</option>)}
       </Select>
       {availableFilters.map(({name, label, type, url}) => (
-        <>
+        <React.Fragment key={name}>
           {type == 'multiselect' && <MultiselectFilter
             name={name}
             url={url}
@@ -174,7 +174,7 @@ export default function Home() {
             value={filterState[name]}
             onChange={newVal => setFilterState({...filterState, [name]: +newVal})}
           />}
-        </>
+        </React.Fragment>
       ))}
       <Button my={4} onClick={fetchRandomGroups}>Reroll</Button>
     </Box>
