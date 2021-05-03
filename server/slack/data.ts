@@ -103,6 +103,10 @@ export function clearCache() {
 /*
  * Recursively fetches all paginated data.
  * Doesn't cache results, since we'll store a normalized version of the data downstream
+ *
+ * While it would make the most sense to just blindly fetch data in these functions
+ * and postprocess them in the get...() functions later, it makes sense to filter out
+ * any invalid values in the fetch...() functions to save memory
  */
 function fetchAllPaginatedData<GenericData, SlackAPIResponse extends WebAPICallResult>(
   fn: (cursor?: string) => Promise<SlackAPIResponse>,
@@ -123,8 +127,9 @@ function fetchAllChannels(): Promise<ConversationsListResult['channels']> {
   return fetchAllPaginatedData(
     // TODO: figure out a better way to type this without having to typecast, even though
     // typecasting is the official recommendation: https://slack.dev/node-slack-sdk/typescript
-    cursor => webClient.conversations.list({cursor, limit: 200, exclude_archived: true}) as Promise<ConversationsListResult>,
-    (res: ConversationsListResult) => _.get(res, 'channels'),
+    cursor => webClient.conversations.list({cursor, limit: 200, exclude_archived: true, types: "public_channel"}) as Promise<ConversationsListResult>,
+    // there's no point of keeping channels with no members
+    (res: ConversationsListResult) => res.channels.filter(c => !!c.num_members),
   )
 }
 
@@ -139,10 +144,10 @@ function isValidUser(profile: UsersListResult['members'][number]): boolean {
   return !profile.is_bot && !profile.deleted && profile.is_email_confirmed
 }
 
-function fetchAllUsers(): Promise<SlackUser[]> {
+function fetchAllUsers(): Promise<UsersListResult['members']> {
   return fetchAllPaginatedData(
     cursor => webClient.users.list({cursor, limit: 200}) as Promise<UsersListResult>,
-    (res: UsersListResult) => res.members.filter(isValidUser).map(member => convertSlackProfileToUser(member.profile, member.id)),
+    (res: UsersListResult) => res.members.filter(isValidUser),
   )
 }
 
@@ -185,6 +190,7 @@ export function getSlackUsers() {
   if (cacheDate && cacheDate + CACHE_EXPIRATION_MS > Date.now()) return Promise.resolve(_.map(cache?.users?.profiles, 'profile'))
   const startTime = Date.now()
   return fetchAllUsers()
+    .then((rawMembers) => rawMembers.map(member => convertSlackProfileToUser(member.profile, member.id)))
     .then(users => {
       const profiles = groupListByKey(users, 'id')
       const profilesWithCacheDate = _.mapValues(profiles, profile => ({date: startTime, profile}))
