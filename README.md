@@ -39,6 +39,7 @@ The following environment variables are used to configure the app:
 | Name | Description | Default |
 | ---- | ----------- | ------- |
 | PORT | The port on which the app should listen | 8080 |
+| METRICS_PORT | The port on which the app should serve metrics at /metrics | - |
 | BAMBOOHR_KEY | A BambooHR key that can be used to make API requests to BambooHR | - |
 | BAMBOOHR_SUBDOMAIN | The BambooHR subdomain to use | - |
 | SLACK_KEY | A Slack key that can be used to make API requests to Slack. Requires the `channels:read`, `users.profile:read`, and `users:read` scopes | - |

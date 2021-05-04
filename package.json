@@ -27,10 +27,12 @@
     "base-64": "^1.0.0",
     "date-fns": "^2.19.0",
     "express": "^4.17.1",
+    "express-prom-bundle": "^6.3.6",
     "express-validator": "^6.10.0",
     "lodash": "^4.17.21",
     "next": "^10.1.2",
     "node-fetch": "^2.6.1",
+    "prom-client": "^13.1.0",
     "react": "^17.0.1",
     "react-day-picker": "^8.0.0-beta.29",
     "react-dom": "^17.0.1"
