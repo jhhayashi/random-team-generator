@@ -12,6 +12,9 @@ const {HEALTHCHECK_ENDPOINT} = process.env
 
 const app = Express()
 
+app.set('etag', false)
+app.set('x-powered-by', false)
+
 // create a healthcheck endpoint before the other registered routes so it doesn't shadow anything
 if (HEALTHCHECK_ENDPOINT) {
   app.get(HEALTHCHECK_ENDPOINT, (_req: Request, res: Response) => res.sendStatus(200))
