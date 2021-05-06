@@ -30,7 +30,7 @@
     "express-prom-bundle": "^6.3.6",
     "express-validator": "^6.10.0",
     "lodash": "^4.17.21",
-    "next": "^10.1.2",
+    "next": "^10.2.0",
     "node-fetch": "^2.6.1",
     "prom-client": "^13.1.0",
     "react": "^17.0.1",
