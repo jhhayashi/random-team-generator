@@ -67,8 +67,8 @@ export default function MultiselectFilter(props: MultiselectFilterProps) {
               if (changes.selectedItems) onChange(changes.selectedItems)
             }}
             itemRenderer={renderDropdownItem}
-            listStyleProps={{color: "black", ...listStyles}}
-            toggleButtonStyleProps={{display: 'none'}}
+            listStyleProps={{color: "black", maxHeight: "400px", overflowY: "scroll", overflowX: "hidden", ...listStyles}}
+            hideToggleButton
           />
       )}
     </FormControl>
