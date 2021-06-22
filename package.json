@@ -1,6 +1,6 @@
 {
   "name": "random-team-generator",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "App to randomly generate teams",
   "main": "index.js",
   "scripts": {
