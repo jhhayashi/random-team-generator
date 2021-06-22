@@ -75,7 +75,7 @@ describe('aggregations', () => {
   // 4  5  6  7
   const mockUsers = [
     {id: "1", name: "One",   supervisor: ''},
-    {id: "2", name: "Two",   department: "A", supervisor: 'One'},
+    {id: "2", displayName: "Two", preferredName: "II",  department: "A", supervisor: 'One'},
     {id: "3", name: "Three", department: "A", supervisor: 'One'},
     {id: "4", name: "Four",  department: "", supervisor: 'Two'},
     {id: "5", name: "Five",  department: "B", supervisor: 'Two'},
@@ -123,7 +123,7 @@ describe('aggregations', () => {
   test('managers are correctly identified', () => {
     return getBambooData()
       .then(() => {
-        expect(cache.data?.managerNames).toEqual(["One", "Two", "Three"])
+        expect(cache.data?.managerNames).toEqual(["One", "Two (II)", "Three"])
         expect(cache.data?.managerIds).toEqual(["1", "2", "3"])
       })
   })
@@ -135,11 +135,11 @@ describe('aggregations', () => {
         expect(_.size(byDirectReports)).toBe(3)
         expect(_.size(byTransitiveReports)).toBe(3)
         expect(byDirectReports["One"]).toEqual(["2", "3"])
-        expect(byDirectReports["Two"]).toEqual(["4", "5"])
+        expect(byDirectReports["Two (II)"]).toEqual(["4", "5"])
         expect(byDirectReports["Three"]).toEqual(["6", "7"])
         // order doesn't matter, so we may need to sort if this breaks
         expect(byTransitiveReports["One"]).toEqual(["2", "4", "5", "3", "6", "7"])
-        expect(byTransitiveReports["Two"]).toEqual(["4", "5"])
+        expect(byTransitiveReports["Two (II)"]).toEqual(["4", "5"])
         expect(byTransitiveReports["Three"]).toEqual(["6", "7"])
       })
   })

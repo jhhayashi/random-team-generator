@@ -86,6 +86,10 @@ export function clearCache() {
   delete cache.data
 }
 
+function warn(str: string) {
+  console.warn(`\x1b[33m${str}\x1b[0m`)
+}
+
 function getName (employee: Employee | BambooEmployee): string {
   if ('name' in employee) return employee.name
   return employee.displayName + (employee.preferredName ? ` (${employee.preferredName})` : '')
@@ -125,14 +129,19 @@ export function getNormalizedBambooCache(data: BambooAPIResponse): Required<Cach
 
     // maps ids to the employee object
     const ids = withOnlyTruthyValues(_.mapValues(_.groupBy(employees, e => e.id), arr => arr[0]))
-    if (_.size(employees) !== _.size(ids)) console.warn('WARNING: duplicate BambooHR IDs found')
+    if (_.size(employees) !== _.size(ids)) warn('WARNING: duplicate BambooHR IDs found')
 
     // the data.by<Representation> keys map some key to a list of IDs
     // TODO: make this work in the case where more than one person has the same name
-    const byName: {[name: string]: ID} = withOnlyTruthyValues(byFirstId(employees, e => e.name))
-    if (_.size(employees) !== _.size(byName)) console.warn('WARNING: duplicate BambooHR names found')
+    const byDisplayName: {[name: string]: ID} = withOnlyTruthyValues(byFirstId(employees, e => e.displayName))
+    if (_.size(employees) !== _.size(byDisplayName)) warn('WARNING: duplicate BambooHR names found')
+    const byName = {...byDisplayName, ...withOnlyTruthyValues(byFirstId(employees, e => e.name))}
     const byTeam: {[team: string]: ID[]} = byIds(employees, e => e.department)
-    const byDirectReports: {[name: string]: ID[]} = byIds(employees, e => e.supervisor)
+    const byDirectReports: {[name: string]: ID[]} = byIds(
+      employees,
+      // bamboo supervisor isn't our normalized name, so we need to jump through some hoops to get to the normalized name
+      e => e.supervisor ? ids[byName[e.supervisor] || '']?.name : undefined
+    )
 
     function getEmployeeAndTransitiveReports(id: string): string[] {
       const name = ids[id]?.name
@@ -145,6 +154,7 @@ export function getNormalizedBambooCache(data: BambooAPIResponse): Required<Cach
     const teamNames = Object.keys(byTeam)
     const managerNames = Object.keys(byDirectReports)
     const managerIds = managerNames.map(name => byName[name]).filter(_.isString)
+    if (managerNames.length !== managerIds.length) warn('WARNING: some manager IDs were not found')
 
     return {
       // ensure we only keep non-sensitive info
