@@ -36,7 +36,6 @@ ENV NODE_ENV=production
 RUN npm ci
 
 COPY --from=builder /app/next.config.js /app/next.config.js
-COPY --from=builder --chown=someuser:somegroup /app/.next /app/.next
 COPY --from=builder /app/dist /app/dist
 COPY --from=builder /app/server-dist /app/server-dist
 
