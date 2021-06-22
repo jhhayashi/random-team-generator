@@ -20,13 +20,13 @@ app.use(routes)
 //  /\    /\
 // 4  5  6  7
 const mockUsers = [
-  {id: "1", name: "One",   supervisor: ''},
-  {id: "2", name: "Two",   department: "A", supervisor: 'One'},
-  {id: "3", name: "Three", department: "A", supervisor: 'One'},
-  {id: "4", name: "Four",  department: "", supervisor: 'Two'},
-  {id: "5", name: "Five",  department: "B", supervisor: 'Two'},
-  {id: "6", name: "Six",   department: "B", supervisor: 'Three'},
-  {id: "7", name: "Seven", department: "B", supervisor: 'Three'},
+  {id: "1", displayName: "One",   supervisor: ''},
+  {id: "2", displayName: "Two",   department: "A", supervisor: 'One'},
+  {id: "3", displayName: "Three", department: "A", supervisor: 'One'},
+  {id: "4", displayName: "Four",  department: "", supervisor: 'Two'},
+  {id: "5", displayName: "Five",  department: "B", supervisor: 'Two'},
+  {id: "6", displayName: "Six",   department: "B", supervisor: 'Three'},
+  {id: "7", displayName: "Seven", department: "B", supervisor: 'Three'},
 ]
 
 const oooBlocks = [

@@ -7,8 +7,8 @@ import {cache, clearCache, getBambooData} from './data'
 
 const {Response} = jest.requireActual('node-fetch')
 
-const createMockUsers = (n = 3) => Array.from({length: n}, (_, i) => ({id: i.toString(), name: i.toString()}))
-// [{id: "0", name: "0"}, {id: "1", name: "1"}, {id: "2", name: "2"}]
+const createMockUsers = (n = 3) => Array.from({length: n}, (_, i) => ({id: i.toString(), displayName: i.toString()}))
+// [{id: "0", displayName: "0"}, {id: "1", displayName: "1"}, {id: "2", displayName: "2"}]
 const users = createMockUsers()
 
 beforeEach(() => {
@@ -74,13 +74,13 @@ describe('aggregations', () => {
   //  /\    /\
   // 4  5  6  7
   const mockUsers = [
-    {id: "1", name: "One",   supervisor: ''},
-    {id: "2", displayName: "Two", preferredName: "II",  department: "A", supervisor: 'One'},
-    {id: "3", name: "Three", department: "A", supervisor: 'One'},
-    {id: "4", name: "Four",  department: "", supervisor: 'Two'},
-    {id: "5", name: "Five",  department: "B", supervisor: 'Two'},
-    {id: "6", name: "Six",   department: "B", supervisor: 'Three'},
-    {id: "7", name: "Seven", department: "B", supervisor: 'Three'},
+    {id: "1", displayName: "One",   supervisor: ''},
+    {id: "2", displayName: "Two",   preferredName: "II",  department: "A", supervisor: 'One'},
+    {id: "3", displayName: "Three", department: "A", supervisor: 'One'},
+    {id: "4", displayName: "Four",  department: "",  supervisor: 'Two'},
+    {id: "5", displayName: "Five",  department: "B", supervisor: 'Two'},
+    {id: "6", displayName: "Six",   department: "B", supervisor: 'Three'},
+    {id: "7", displayName: "Seven", department: "B", supervisor: 'Three'},
   ]
   beforeEach(() => {
     setUsers(mockUsers)
@@ -88,7 +88,7 @@ describe('aggregations', () => {
 
   test('getBambooData() sets names correctly', () => {
     setUsers([
-      {id: "1", name: "1"},
+      {id: "1", name: "1", displayName: "foo"},
       {id: "2", displayName: "2"},
       {id: "3", displayName: "3", preferredName: "3"},
     ])

@@ -134,7 +134,7 @@ export function getNormalizedBambooCache(data: BambooAPIResponse): Required<Cach
     // the data.by<Representation> keys map some key to a list of IDs
     // TODO: make this work in the case where more than one person has the same name
     const byDisplayName: {[name: string]: ID} = withOnlyTruthyValues(byFirstId(employees, e => e.displayName))
-    if (_.size(employees) !== _.size(byDisplayName)) warn('WARNING: duplicate BambooHR names found')
+    if (_.size(employees) !== _.size(byDisplayName)) warn(`WARNING: duplicate BambooHR names found. there are ${_.size(employees)} employees and ${_.size(byDisplayName)} names`)
     const byName = {...byDisplayName, ...withOnlyTruthyValues(byFirstId(employees, e => e.name))}
     const byTeam: {[team: string]: ID[]} = byIds(employees, e => e.department)
     const byDirectReports: {[name: string]: ID[]} = byIds(
