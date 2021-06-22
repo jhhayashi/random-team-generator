@@ -9,6 +9,7 @@ import {createResponseFunction, respondWith400IfErrors, getRandomTeamsFromMember
 import {Integration, User, Filter, APIMember, APIFilters, APIGroups, APITeams, APIManagers} from '../../types'
 
 const PROD = process.env['NODE_ENV'] == 'production'
+const DEBUG = ['1', 'true'].includes(`${process.env['DEBUG']}`)
 const PREFIX = '/api/bamboo'
 
 export const metadata: Integration | null = ENABLED ? {name: 'BambooHR', apiPrefix: PREFIX} : null
@@ -111,5 +112,14 @@ router.get(`${PREFIX}/filters`, (_req: Request, res: Response) => {
   ]
   sendAPIFilters(res, filters)
 })
+
+// debug endpoint
+if (DEBUG) {
+  const debugEndpoint = `${PREFIX}/debug`
+  console.log(`DEBUG is true. enabling bamboo debug endpoint at ${debugEndpoint}`)
+  router.get(debugEndpoint, (_req: Request, res: Response) => {
+    getBambooData().then(data => res.json(data))
+  })
+}
 
 export default router

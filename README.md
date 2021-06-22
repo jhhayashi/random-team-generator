@@ -44,3 +44,4 @@ The following environment variables are used to configure the app:
 | BAMBOOHR_SUBDOMAIN | The BambooHR subdomain to use | - |
 | SLACK_KEY | A Slack key that can be used to make API requests to Slack. Requires the `channels:read`, `users.profile:read`, and `users:read` scopes | - |
 | HEALTHCHECK_ENDPOINT | An API endpoint that will be created to respond to healthchecks | - |
+| DEBUG | Enables any debugging endpoints | - |
